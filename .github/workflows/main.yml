@@ -1,0 +1,65 @@
+name: Hesap Takip CI/CD (Web, APK, iOS)
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-web-and-apk:
+    name: Web Yayını ve APK Oluşturma
+    runs-on: ubuntu-latest
+    steps:
+      - name: Kodu Çek
+        uses: actions/checkout@v4
+
+      - name: Flutter Kurulumu
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+
+      - name: Paketleri İndir
+        run: flutter pub get
+
+      - name: Web İçin Derle
+        # NOT: Eğer GitHub reponun adı farklıysa "hesap_takip" kısmını ona göre değiştir.
+        run: flutter build web --release --base-href "/hesap_takip/"
+
+      - name: Web Sürümünü GitHub Pages'e Yükle
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./build/web
+
+      - name: Android APK Derle
+        run: flutter build apk --release
+
+      - name: APK Dosyasını Kaydet (Artifact Olarak)
+        uses: actions/upload-artifact@v4
+        with:
+          name: HesapTakip-APK
+          path: build/app/outputs/flutter-apk/app-release.apk
+
+  build-ios:
+    name: iOS Derlemesi (Mac Sunucusu)
+    runs-on: macos-latest
+    steps:
+      - name: Kodu Çek
+        uses: actions/checkout@v4
+
+      - name: Flutter Kurulumu
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+
+      - name: Paketleri İndir
+        run: flutter pub get
+
+      - name: iOS İçin Derle (Sertifikasız)
+        run: flutter build ios --release --no-codesign
+
+      - name: iOS Dosyasını Kaydet (Artifact)
+        uses: actions/upload-artifact@v4
+        with:
+          name: HesapTakip-iOS
+          path: build/ios/iphoneos/Runner.app
