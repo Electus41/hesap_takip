@@ -34,14 +34,12 @@ class _CompanyRegisterScreenState extends State<CompanyRegisterScreen> {
     setState(() => _isLoading = true);
 
     try {
-      // 1. Auth Sistemiyle Kullanıcıyı Oluştur
       final authRes = await supabase.auth.signUp(
         email: _emailController.text.trim(),
         password: _passwordController.text.trim(),
       );
 
       if (authRes.user != null) {
-        // 2. Yeni Şirketi Veritabanına Ekle ve Oluşan ID'yi Çek
         final companyRes = await supabase
             .from('companies')
             .insert({'name': _companyNameController.text.trim()})
@@ -50,7 +48,6 @@ class _CompanyRegisterScreenState extends State<CompanyRegisterScreen> {
 
         final newCompanyId = companyRes['id'];
 
-        // 3. Profili Yönetici (Admin) Olarak Ata
         await supabase
             .from('profiles')
             .update({
@@ -80,7 +77,7 @@ class _CompanyRegisterScreenState extends State<CompanyRegisterScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text(
-              'Kayıt işlemi başarısız. E-posta adresi zaten kullanımda olabilir.',
+              'Kayıt işlemi başarısız. E-posta adresi kullanımda olabilir.',
             ),
             backgroundColor: Colors.redAccent,
           ),
@@ -92,6 +89,8 @@ class _CompanyRegisterScreenState extends State<CompanyRegisterScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isMobile = MediaQuery.of(context).size.width < 500;
+
     return Scaffold(
       backgroundColor: const Color(0xFF101014),
       appBar: AppBar(
@@ -101,9 +100,10 @@ class _CompanyRegisterScreenState extends State<CompanyRegisterScreen> {
       ),
       body: Center(
         child: SingleChildScrollView(
+          padding: EdgeInsets.all(isMobile ? 16 : 0),
           child: Container(
             width: 400,
-            padding: const EdgeInsets.all(40),
+            padding: EdgeInsets.all(isMobile ? 24 : 40),
             decoration: BoxDecoration(
               color: const Color(0xFF1A1A20),
               borderRadius: BorderRadius.circular(16),
@@ -112,48 +112,49 @@ class _CompanyRegisterScreenState extends State<CompanyRegisterScreen> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(Icons.business, color: Color(0xFF00ACC1), size: 48),
-                const SizedBox(height: 24),
+                Image.asset('assets/logo.png', height: 95, fit: BoxFit.contain),
+                const SizedBox(height: 16),
                 const Text(
                   'Yeni Şirket Kurulumu',
                   style: TextStyle(
                     color: Colors.white,
-                    fontSize: 24,
+                    fontSize: 22,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 6),
                 const Text(
-                  'Kendi ofisinizi (Admin hesabı) oluşturun.',
-                  style: TextStyle(color: Colors.white54, fontSize: 14),
+                  'Kendi ofisinizi (Yönetici hesabı) oluşturun.',
+                  style: TextStyle(color: Colors.white54, fontSize: 13),
+                  textAlign: TextAlign.center,
                 ),
-                const SizedBox(height: 32),
+                const SizedBox(height: 28),
 
                 _buildTextField(
                   'Adınız Soyadınız',
                   _nameController,
                   Icons.badge,
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 14),
                 _buildTextField(
                   'Ofis / Şirket Adı',
                   _companyNameController,
                   Icons.store,
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 14),
                 _buildTextField(
                   'Kurumsal E-Posta Adresi',
                   _emailController,
                   Icons.email,
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 14),
                 _buildTextField(
                   'Sistem Şifresi Belirleyin',
                   _passwordController,
                   Icons.lock,
                   obscureText: true,
                 ),
-                const SizedBox(height: 32),
+                const SizedBox(height: 28),
 
                 SizedBox(
                   width: double.infinity,
@@ -167,7 +168,14 @@ class _CompanyRegisterScreenState extends State<CompanyRegisterScreen> {
                       ),
                     ),
                     child: _isLoading
-                        ? const CircularProgressIndicator(color: Colors.white)
+                        ? const SizedBox(
+                            width: 24,
+                            height: 24,
+                            child: CircularProgressIndicator(
+                              color: Colors.white,
+                              strokeWidth: 2,
+                            ),
+                          )
                         : const Text(
                             'Ofisi Kur ve Başla',
                             style: TextStyle(

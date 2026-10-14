@@ -45,11 +45,12 @@ class _AnaEkranState extends State<AnaEkran> {
     try {
       final user = supabase.auth.currentUser;
       if (user == null) {
-        if (mounted)
+        if (mounted) {
           Navigator.pushReplacement(
             context,
             MaterialPageRoute(builder: (context) => const LoginScreen()),
           );
+        }
         return;
       }
 
@@ -64,7 +65,7 @@ class _AnaEkranState extends State<AnaEkran> {
       final companyInfo = profileData['companies'] as Map<String, dynamic>?;
       _companyName = companyInfo != null
           ? companyInfo['name']
-          : 'Bilinmeyen Şirket';
+          : 'Mükellef Takip';
 
       final clientsData = await supabase
           .from('clients')
@@ -129,7 +130,9 @@ class _AnaEkranState extends State<AnaEkran> {
         });
       }
     } catch (e) {
-      if (mounted) setState(() => _isLoading = false);
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 
@@ -138,10 +141,17 @@ class _AnaEkranState extends State<AnaEkran> {
       locale: 'tr_TR',
       symbol: '₺',
     );
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isMobile = screenWidth < 600;
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: const Color(0xFF1A1A20),
+        insetPadding: EdgeInsets.symmetric(
+          horizontal: isMobile ? 16 : 40,
+          vertical: 24,
+        ),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: const Row(
           children: [
@@ -157,13 +167,13 @@ class _AnaEkranState extends State<AnaEkran> {
           ],
         ),
         content: SizedBox(
-          width: 500,
+          width: isMobile ? screenWidth : 500,
           height: _alerts.isEmpty ? 100 : 400,
           child: _alerts.isEmpty
               ? const Center(
                   child: Text(
                     'Şu an için yaklaşan veya geciken ödeme yok.\nKasanız güvende! 🎉',
-                    style: TextStyle(color: Colors.white54, fontSize: 16),
+                    style: TextStyle(color: Colors.white54, fontSize: 15),
                     textAlign: TextAlign.center,
                   ),
                 )
@@ -247,7 +257,7 @@ class _AnaEkranState extends State<AnaEkran> {
     final paymentTypes = List<Map<String, dynamic>>.from(paymentTypesRes);
 
     if (paymentTypes.isEmpty) {
-      if (mounted)
+      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text(
@@ -255,6 +265,7 @@ class _AnaEkranState extends State<AnaEkran> {
             ),
           ),
         );
+      }
       return;
     }
     final descController = TextEditingController();
@@ -271,8 +282,15 @@ class _AnaEkranState extends State<AnaEkran> {
       builder: (context) {
         return StatefulBuilder(
           builder: (context, setDialogState) {
+            final screenWidth = MediaQuery.of(context).size.width;
+            final isMobile = screenWidth < 600;
+
             return AlertDialog(
               backgroundColor: const Color(0xFF1A1A20),
+              insetPadding: EdgeInsets.symmetric(
+                horizontal: isMobile ? 16 : 40,
+                vertical: 24,
+              ),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(16),
               ),
@@ -301,77 +319,83 @@ class _AnaEkranState extends State<AnaEkran> {
                       ),
                     )
                   : SingleChildScrollView(
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          DropdownButtonFormField<String>(
-                            dropdownColor: const Color(0xFF222222),
-                            style: const TextStyle(color: Colors.white),
-                            decoration: InputDecoration(
-                              labelText: 'Ödeme Kalemi',
-                              labelStyle: const TextStyle(
-                                color: Colors.white54,
+                      child: SizedBox(
+                        width: isMobile ? screenWidth : 400,
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            DropdownButtonFormField<String>(
+                              isExpanded: true,
+                              dropdownColor: const Color(0xFF222222),
+                              style: const TextStyle(color: Colors.white),
+                              decoration: InputDecoration(
+                                labelText: 'Ödeme Kalemi',
+                                labelStyle: const TextStyle(
+                                  color: Colors.white54,
+                                ),
+                                filled: true,
+                                fillColor: const Color(0xFF101014),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                  borderSide: BorderSide.none,
+                                ),
                               ),
-                              filled: true,
-                              fillColor: const Color(0xFF101014),
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
-                                borderSide: BorderSide.none,
+                              items: paymentTypes
+                                  .map(
+                                    (pt) => DropdownMenuItem<String>(
+                                      value: pt['id'].toString(),
+                                      child: Text(pt['name'].toString()),
+                                    ),
+                                  )
+                                  .toList(),
+                              onChanged: (value) => setDialogState(() {
+                                selectedPaymentTypeId = value;
+                                selectedPaymentTypeName = paymentTypes
+                                    .firstWhere(
+                                      (pt) => pt['id'].toString() == value,
+                                    )['name'];
+                              }),
+                            ),
+                            const SizedBox(height: 16),
+                            TextField(
+                              controller: descController,
+                              style: const TextStyle(color: Colors.white),
+                              decoration: InputDecoration(
+                                labelText: 'Dönem / Açıklama (Örn: Ekim Ayı)',
+                                labelStyle: const TextStyle(
+                                  color: Colors.white54,
+                                ),
+                                filled: true,
+                                fillColor: const Color(0xFF101014),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                  borderSide: BorderSide.none,
+                                ),
                               ),
                             ),
-                            items: paymentTypes
-                                .map(
-                                  (pt) => DropdownMenuItem<String>(
-                                    value: pt['id'].toString(),
-                                    child: Text(pt['name'].toString()),
+                            const SizedBox(height: 16),
+                            TextField(
+                              controller: amountController,
+                              keyboardType:
+                                  const TextInputType.numberWithOptions(
+                                    decimal: true,
                                   ),
-                                )
-                                .toList(),
-                            onChanged: (value) => setDialogState(() {
-                              selectedPaymentTypeId = value;
-                              selectedPaymentTypeName = paymentTypes.firstWhere(
-                                (pt) => pt['id'].toString() == value,
-                              )['name'];
-                            }),
-                          ),
-                          const SizedBox(height: 16),
-                          TextField(
-                            controller: descController,
-                            style: const TextStyle(color: Colors.white),
-                            decoration: InputDecoration(
-                              labelText: 'Dönem / Açıklama (Örn: Ekim Ayı)',
-                              labelStyle: const TextStyle(
-                                color: Colors.white54,
-                              ),
-                              filled: true,
-                              fillColor: const Color(0xFF101014),
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
-                                borderSide: BorderSide.none,
+                              style: const TextStyle(color: Colors.white),
+                              decoration: InputDecoration(
+                                labelText: 'Tutar (₺)',
+                                labelStyle: const TextStyle(
+                                  color: Colors.white54,
+                                ),
+                                filled: true,
+                                fillColor: const Color(0xFF101014),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                  borderSide: BorderSide.none,
+                                ),
                               ),
                             ),
-                          ),
-                          const SizedBox(height: 16),
-                          TextField(
-                            controller: amountController,
-                            keyboardType: const TextInputType.numberWithOptions(
-                              decimal: true,
-                            ),
-                            style: const TextStyle(color: Colors.white),
-                            decoration: InputDecoration(
-                              labelText: 'Tutar (₺)',
-                              labelStyle: const TextStyle(
-                                color: Colors.white54,
-                              ),
-                              filled: true,
-                              fillColor: const Color(0xFF101014),
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
-                                borderSide: BorderSide.none,
-                              ),
-                            ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                     ),
               actions: isProcessing
@@ -387,8 +411,9 @@ class _AnaEkranState extends State<AnaEkran> {
                       ElevatedButton(
                         onPressed: () async {
                           if (selectedPaymentTypeId == null ||
-                              amountController.text.isEmpty)
+                              amountController.text.isEmpty) {
                             return;
+                          }
                           setDialogState(() => isProcessing = true);
                           try {
                             final clientsRes = await supabase
@@ -422,10 +447,11 @@ class _AnaEkranState extends State<AnaEkran> {
                                       },
                                     )
                                     .toList();
-                            if (batchInserts.isNotEmpty)
+                            if (batchInserts.isNotEmpty) {
                               await supabase
                                   .from('transactions')
                                   .insert(batchInserts);
+                            }
 
                             if (mounted) {
                               Navigator.pop(context);
@@ -441,7 +467,7 @@ class _AnaEkranState extends State<AnaEkran> {
                             }
                           } catch (e) {
                             setDialogState(() => isProcessing = false);
-                            if (mounted)
+                            if (mounted) {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 const SnackBar(
                                   content: Text(
@@ -450,6 +476,7 @@ class _AnaEkranState extends State<AnaEkran> {
                                   backgroundColor: Colors.redAccent,
                                 ),
                               );
+                            }
                           }
                         },
                         style: ElevatedButton.styleFrom(
@@ -473,11 +500,12 @@ class _AnaEkranState extends State<AnaEkran> {
 
   Future<void> _signOut() async {
     await Supabase.instance.client.auth.signOut();
-    if (mounted)
+    if (mounted) {
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (context) => const LoginScreen()),
       );
+    }
   }
 
   Widget _buildNotificationBell() {
@@ -492,7 +520,7 @@ class _AnaEkranState extends State<AnaEkran> {
         child: const Icon(
           Icons.notifications_active,
           color: Colors.white,
-          size: 28,
+          size: 26,
         ),
       ),
       onPressed: _showNotificationPanel,
@@ -505,24 +533,72 @@ class _AnaEkranState extends State<AnaEkran> {
     final currencyFormatter = NumberFormat.currency(
       locale: 'tr_TR',
       symbol: '₺',
+      decimalDigits: 0,
     );
 
     return Scaffold(
       backgroundColor: const Color(0xFF101014),
-      drawer: !isDesktop ? _buildSidebar() : null,
+      drawer: !isDesktop
+          ? Drawer(
+              backgroundColor: const Color(0xFF16161A),
+              child: _buildSidebar(),
+            )
+          : null,
       appBar: !isDesktop
           ? AppBar(
               backgroundColor: const Color(0xFF16161A),
               elevation: 0,
               iconTheme: const IconThemeData(color: Colors.white),
-              title: Text(
-                _companyName,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                ),
+              title: Row(
+                children: [
+                  Image.asset(
+                    'assets/logo.png',
+                    height: 30,
+                    fit: BoxFit.contain,
+                    errorBuilder: (_, __, ___) => const Icon(
+                      Icons.layers_rounded,
+                      color: Color(0xFF00ACC1),
+                      size: 26,
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      _companyName.isNotEmpty ? _companyName : 'Mükellef Takip',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 18,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
               ),
-              actions: [_buildNotificationBell(), const SizedBox(width: 8)],
+              actions: [
+                _buildNotificationBell(),
+                IconButton(
+                  icon: CircleAvatar(
+                    radius: 15,
+                    backgroundColor: const Color(0xFF00ACC1),
+                    child: Text(
+                      _userName.isNotEmpty ? _userName[0].toUpperCase() : 'M',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ),
+                  onPressed: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const ProfileSettingsScreen(),
+                    ),
+                  ).then((_) => _fetchDashboardData()),
+                ),
+                const SizedBox(width: 6),
+              ],
             )
           : null,
       body: Row(
@@ -534,277 +610,526 @@ class _AnaEkranState extends State<AnaEkran> {
                 ? const Center(
                     child: CircularProgressIndicator(color: Color(0xFF00ACC1)),
                   )
-                : SingleChildScrollView(
-                    padding: const EdgeInsets.all(32.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  children: [
-                                    Text(
-                                      'Hoş Geldin, $_userName',
-                                      style: const TextStyle(
-                                        fontSize: 28,
-                                        fontWeight: FontWeight.bold,
-                                        color: Colors.white,
-                                      ),
-                                    ),
-                                    const SizedBox(width: 12),
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 10,
-                                        vertical: 4,
-                                      ),
-                                      decoration: BoxDecoration(
-                                        color: _userRole == 'admin'
-                                            ? Colors.redAccent.withValues(
-                                                alpha: 0.2,
-                                              )
-                                            : Colors.blueAccent.withValues(
-                                                alpha: 0.2,
-                                              ),
-                                        borderRadius: BorderRadius.circular(12),
-                                        border: Border.all(
-                                          color: _userRole == 'admin'
-                                              ? Colors.redAccent
-                                              : Colors.blueAccent,
-                                        ),
-                                      ),
-                                      child: Text(
-                                        _userRole == 'admin'
-                                            ? 'Yönetici'
-                                            : 'Personel',
-                                        style: TextStyle(
-                                          color: _userRole == 'admin'
-                                              ? Colors.redAccent
-                                              : Colors.blueAccent,
-                                          fontSize: 12,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                const SizedBox(height: 8),
-                                Text(
-                                  '$_companyName ofisinin bugünkü genel durumu.',
-                                  style: const TextStyle(
-                                    fontSize: 16,
-                                    color: Colors.white54,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            if (isDesktop)
-                              Row(
-                                children: [
-                                  _buildNotificationBell(),
-                                  const SizedBox(width: 16),
-                                  InkWell(
-                                    onTap: () => Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (context) =>
-                                            const ProfileSettingsScreen(),
-                                      ),
-                                    ).then((_) => _fetchDashboardData()),
-                                    borderRadius: BorderRadius.circular(20),
-                                    child: CircleAvatar(
-                                      backgroundColor: const Color(0xFF00ACC1),
-                                      child: Text(
-                                        _userName.isNotEmpty
-                                            ? _userName[0].toUpperCase()
-                                            : 'M',
-                                        style: const TextStyle(
-                                          color: Colors.white,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                          ],
-                        ),
-                        const SizedBox(height: 40),
-                        LayoutBuilder(
-                          builder: (context, constraints) {
-                            double statCardWidth = isDesktop
-                                ? (constraints.maxWidth - 48) / 3
-                                : double.infinity;
-                            return Wrap(
-                              spacing: 24,
-                              runSpacing: 24,
-                              children: [
-                                _buildModernStatCard(
-                                  title: 'Aktif Mükellef',
-                                  value: _aktifMukellefCount.toString(),
-                                  trend: 'Sistemdeki toplam kayıt',
-                                  icon: Icons.business_center,
-                                  color: const Color(0xFF00ACC1),
-                                  width: statCardWidth,
-                                ),
-                                _buildModernStatCard(
-                                  title: 'Bekleyen Tahsilat',
-                                  value: currencyFormatter.format(
-                                    _bekleyenTahsilat,
-                                  ),
-                                  trend: 'Tahsil edilmeyi bekliyor',
-                                  icon: Icons.account_balance_wallet,
-                                  color: Colors.redAccent,
-                                  width: statCardWidth,
-                                  trendColor: Colors.redAccent,
-                                ),
-                                _buildModernStatCard(
-                                  title: 'Toplam Kasa / Gelir',
-                                  value: currencyFormatter.format(_toplamGelir),
-                                  trend: 'Tamamlanan tahsilatlar',
-                                  icon: Icons.trending_up,
-                                  color: Colors.greenAccent,
-                                  width: statCardWidth,
-                                ),
-                              ],
-                            );
-                          },
-                        ),
-                        const SizedBox(height: 40),
-                        const Text(
-                          'Hızlı İşlemler & Modüller',
-                          style: TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                          ),
-                        ),
-                        const SizedBox(height: 24),
-                        LayoutBuilder(
-                          builder: (context, constraints) {
-                            double cardWidth;
-                            if (constraints.maxWidth > 1200)
-                              cardWidth = (constraints.maxWidth - 48) / 3;
-                            else if (constraints.maxWidth > 800)
-                              cardWidth = (constraints.maxWidth - 24) / 2;
-                            else
-                              cardWidth = double.infinity;
-                            return Wrap(
-                              spacing: 24,
-                              runSpacing: 24,
-                              children: [
-                                _buildActionCard(
-                                  title: 'Mükellef Yönetimi',
-                                  description:
-                                      'Yeni mükellef ekle veya mevcut profilleri düzenle.',
-                                  icon: Icons.group_add,
-                                  width: cardWidth,
-                                  onTap: () => Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (context) =>
-                                          const ClientListScreen(),
-                                    ),
-                                  ).then((_) => _fetchDashboardData()),
-                                ),
-                                if (_userRole == 'admin')
-                                  _buildActionCard(
-                                    title: 'Ekip Yönetimi (Personeller)',
-                                    description:
-                                        'Ofisinize yeni personel ekleyin.',
-                                    icon: Icons.admin_panel_settings,
-                                    width: cardWidth,
-                                    onTap: () => Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (context) =>
-                                            const TeamManagementScreen(),
-                                      ),
-                                    ).then((_) => _fetchDashboardData()),
-                                  ),
-                                _buildActionCard(
-                                  title: 'Toplu Tahakkuk',
-                                  description:
-                                      'Tüm mükelleflere tek tuşla borç yansıt.',
-                                  icon: Icons.receipt_long,
-                                  width: cardWidth,
-                                  onTap: _showTopluTahakkukDialog,
-                                ),
-                                _buildActionCard(
-                                  title: 'Geciken Ödemeler',
-                                  description:
-                                      'Vadesi geçmiş alacakları görüntüle ve ekstre al.',
-                                  icon: Icons.warning_amber_rounded,
-                                  width: cardWidth,
-                                  onTap: () => Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (context) =>
-                                          const OverduePaymentsScreen(),
-                                    ),
-                                  ).then((_) => _fetchDashboardData()),
-                                ),
-                                _buildActionCard(
-                                  title: 'Kasa & Hareketler',
-                                  description:
-                                      'Tüm nakit ve banka tahsilatlarını listele.',
-                                  icon: Icons.point_of_sale,
-                                  width: cardWidth,
-                                  onTap: () => Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (context) =>
-                                          const CashTransactionsScreen(),
-                                    ),
-                                  ).then((_) => _fetchDashboardData()),
-                                ),
-                                _buildActionCard(
-                                  title: 'Dijital Evrak Arşivi',
-                                  description:
-                                      'Mükellef evraklarını (Vergi Levhası vb.) bulutta sakla.',
-                                  icon: Icons.folder_shared,
-                                  width: cardWidth,
-                                  onTap: () => Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (context) =>
-                                          const DocumentArchiveScreen(),
-                                    ),
-                                  ).then((_) => _fetchDashboardData()),
-                                ),
-                              ],
-                            );
-                          },
-                        ),
-                        const SizedBox(height: 40),
-                        const Text(
-                          'Son Finansal Hareketler',
-                          style: TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                          ),
-                        ),
-                        const SizedBox(height: 24),
-                        _buildRecentTransactionsTable(),
-                        const SizedBox(height: 40),
-                      ],
-                    ),
-                  ),
+                // EKRAN GENİŞLİĞİNE GÖRE WEB VEYA MOBİL TASARIMI ÇAĞIRIYORUZ
+                : isDesktop
+                ? _buildDesktopDashboard(currencyFormatter)
+                : _buildMobileStockStyleDashboard(currencyFormatter),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildRecentTransactionsTable() {
+  // ===========================================================================
+  // 1. MOBİL GÖRÜNÜM (STOK UYGULAMASI TARZI KOMPAKT BANNER & İNCE MENÜ SATIRLARI)
+  // ===========================================================================
+  Widget _buildMobileStockStyleDashboard(NumberFormat currencyFormatter) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // ÜST ÖZET BANNER (Stok uygulamasındaki mavi/mor geçişli özet kutusu)
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(vertical: 22, horizontal: 16),
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [
+                  Color(0xFF1E3C72),
+                  Color(0xFF2A5298),
+                  Color(0xFF00ACC1),
+                ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFF00ACC1).withValues(alpha: 0.2),
+                  blurRadius: 12,
+                  offset: const Offset(0, 6),
+                ),
+              ],
+            ),
+            child: Column(
+              children: [
+                Text(
+                  'CANLI OFİS & FİNANS ÖZETİ',
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.8),
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 1.2,
+                  ),
+                ),
+                const SizedBox(height: 18),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    // 1. Mükellef Sayısı
+                    Expanded(
+                      child: Column(
+                        children: [
+                          Text(
+                            _aktifMukellefCount.toString(),
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 24,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          const Text(
+                            'Aktif Mükellef',
+                            style: TextStyle(
+                              color: Colors.white70,
+                              fontSize: 11,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Container(width: 1, height: 36, color: Colors.white24),
+                    // 2. Bekleyen Tahsilat
+                    Expanded(
+                      child: Column(
+                        children: [
+                          Text(
+                            currencyFormatter.format(_bekleyenTahsilat),
+                            style: const TextStyle(
+                              color: Color(0xFFFF8A80),
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          const SizedBox(height: 4),
+                          const Text(
+                            'Bekleyen Alacak',
+                            style: TextStyle(
+                              color: Colors.white70,
+                              fontSize: 11,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Container(width: 1, height: 36, color: Colors.white24),
+                    // 3. Toplam Kasa
+                    Expanded(
+                      child: Column(
+                        children: [
+                          Text(
+                            currencyFormatter.format(_toplamGelir),
+                            style: const TextStyle(
+                              color: Colors.greenAccent,
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          const SizedBox(height: 4),
+                          const Text(
+                            'Net Tahsilat',
+                            style: TextStyle(
+                              color: Colors.white70,
+                              fontSize: 11,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 18),
+
+          // ALT ALTA İNCE KOMPAKT MENÜ SATIRLARI (Stok Uygulaması Stili)
+          _buildCompactMenuRow(
+            title: 'Mükellef Yönetimi',
+            icon: Icons.group_add,
+            iconColor: Colors.greenAccent,
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const ClientListScreen()),
+            ).then((_) => _fetchDashboardData()),
+          ),
+          _buildCompactMenuRow(
+            title: 'Görev & İş Takibi (Kanban)',
+            icon: Icons.assignment_turned_in,
+            iconColor: Colors.blueAccent,
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const TaskManagementScreen(),
+              ),
+            ).then((_) => _fetchDashboardData()),
+          ),
+          _buildCompactMenuRow(
+            title: 'Toplu Tahakkuk (Borç Yansıt)',
+            icon: Icons.receipt_long,
+            iconColor: Colors.purpleAccent,
+            onTap: _showTopluTahakkukDialog,
+          ),
+          _buildCompactMenuRow(
+            title: 'Kasa & Gün Sonu Hareketleri',
+            icon: Icons.point_of_sale,
+            iconColor: Colors.amberAccent,
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const CashTransactionsScreen(),
+              ),
+            ).then((_) => _fetchDashboardData()),
+          ),
+          _buildCompactMenuRow(
+            title: 'Geciken Ödemeler & Ekstre',
+            icon: Icons.warning_amber_rounded,
+            iconColor: Colors.redAccent,
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const OverduePaymentsScreen(),
+              ),
+            ).then((_) => _fetchDashboardData()),
+          ),
+          _buildCompactMenuRow(
+            title: 'Dijital Evrak Arşivi',
+            icon: Icons.folder_shared,
+            iconColor: const Color(0xFF00ACC1),
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const DocumentArchiveScreen(),
+              ),
+            ).then((_) => _fetchDashboardData()),
+          ),
+          _buildCompactMenuRow(
+            title: 'Finansal Analiz & PDF Raporu',
+            icon: Icons.picture_as_pdf,
+            iconColor: Colors.deepOrangeAccent,
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const ReportsScreen()),
+            ).then((_) => _fetchDashboardData()),
+          ),
+          if (_userRole == 'admin')
+            _buildCompactMenuRow(
+              title: 'Ekip Yönetimi (Personeller)',
+              icon: Icons.admin_panel_settings,
+              iconColor: Colors.indigoAccent,
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const TeamManagementScreen(),
+                ),
+              ).then((_) => _fetchDashboardData()),
+            ),
+
+          const SizedBox(height: 24),
+          const Text(
+            'Son Finansal Hareketler',
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+            ),
+          ),
+          const SizedBox(height: 12),
+          _buildRecentTransactionsTable(false),
+          const SizedBox(height: 24),
+        ],
+      ),
+    );
+  }
+
+  // STOK UYGULAMASINDAKİ İNCE ŞIK SATIR TASARIMI
+  Widget _buildCompactMenuRow({
+    required String title,
+    required IconData icon,
+    required Color iconColor,
+    required VoidCallback onTap,
+  }) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1A1A20),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+      ),
+      child: ListTile(
+        onTap: onTap,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
+        leading: Container(
+          padding: const EdgeInsets.all(10),
+          decoration: BoxDecoration(
+            color: iconColor.withValues(alpha: 0.15),
+            shape: BoxShape.circle,
+          ),
+          child: Icon(icon, color: iconColor, size: 20),
+        ),
+        title: Text(
+          title,
+          style: const TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.w600,
+            fontSize: 14,
+          ),
+        ),
+        trailing: const Icon(
+          Icons.chevron_right,
+          color: Colors.white54,
+          size: 20,
+        ),
+      ),
+    );
+  }
+
+  // ===========================================================================
+  // 2. WEB / MASAÜSTÜ GÖRÜNÜM (MEVCUT GENİŞ KARTLI SAAS TASARIMI)
+  // ===========================================================================
+  Widget _buildDesktopDashboard(NumberFormat currencyFormatter) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(32.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Text(
+                        'Hoş Geldin, $_userName',
+                        style: const TextStyle(
+                          fontSize: 28,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: _userRole == 'admin'
+                              ? Colors.redAccent.withValues(alpha: 0.2)
+                              : Colors.blueAccent.withValues(alpha: 0.2),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: _userRole == 'admin'
+                                ? Colors.redAccent
+                                : Colors.blueAccent,
+                          ),
+                        ),
+                        child: Text(
+                          _userRole == 'admin' ? 'Yönetici' : 'Personel',
+                          style: TextStyle(
+                            color: _userRole == 'admin'
+                                ? Colors.redAccent
+                                : Colors.blueAccent,
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    '$_companyName ofisinin bugünkü genel durumu.',
+                    style: const TextStyle(fontSize: 16, color: Colors.white54),
+                  ),
+                ],
+              ),
+              Row(
+                children: [
+                  _buildNotificationBell(),
+                  const SizedBox(width: 16),
+                  InkWell(
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const ProfileSettingsScreen(),
+                      ),
+                    ).then((_) => _fetchDashboardData()),
+                    borderRadius: BorderRadius.circular(20),
+                    child: CircleAvatar(
+                      backgroundColor: const Color(0xFF00ACC1),
+                      child: Text(
+                        _userName.isNotEmpty ? _userName[0].toUpperCase() : 'M',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          const SizedBox(height: 40),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              double statCardWidth = (constraints.maxWidth - 48) / 3;
+              return Wrap(
+                spacing: 24,
+                runSpacing: 24,
+                children: [
+                  _buildModernStatCard(
+                    title: 'Aktif Mükellef',
+                    value: _aktifMukellefCount.toString(),
+                    trend: 'Sistemdeki toplam kayıt',
+                    icon: Icons.business_center,
+                    color: const Color(0xFF00ACC1),
+                    width: statCardWidth,
+                  ),
+                  _buildModernStatCard(
+                    title: 'Bekleyen Tahsilat',
+                    value: currencyFormatter.format(_bekleyenTahsilat),
+                    trend: 'Tahsil edilmeyi bekliyor',
+                    icon: Icons.account_balance_wallet,
+                    color: Colors.redAccent,
+                    width: statCardWidth,
+                    trendColor: Colors.redAccent,
+                  ),
+                  _buildModernStatCard(
+                    title: 'Toplam Kasa / Gelir',
+                    value: currencyFormatter.format(_toplamGelir),
+                    trend: 'Tamamlanan tahsilatlar',
+                    icon: Icons.trending_up,
+                    color: Colors.greenAccent,
+                    width: statCardWidth,
+                  ),
+                ],
+              );
+            },
+          ),
+          const SizedBox(height: 40),
+          const Text(
+            'Hızlı İşlemler & Modüller',
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+            ),
+          ),
+          const SizedBox(height: 24),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              double cardWidth = constraints.maxWidth > 1200
+                  ? (constraints.maxWidth - 48) / 3
+                  : (constraints.maxWidth - 24) / 2;
+              return Wrap(
+                spacing: 24,
+                runSpacing: 24,
+                children: [
+                  _buildActionCard(
+                    title: 'Mükellef Yönetimi',
+                    description:
+                        'Yeni mükellef ekle veya mevcut profilleri düzenle.',
+                    icon: Icons.group_add,
+                    width: cardWidth,
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const ClientListScreen(),
+                      ),
+                    ).then((_) => _fetchDashboardData()),
+                  ),
+                  if (_userRole == 'admin')
+                    _buildActionCard(
+                      title: 'Ekip Yönetimi (Personeller)',
+                      description: 'Ofisinize yeni personel ekleyin.',
+                      icon: Icons.admin_panel_settings,
+                      width: cardWidth,
+                      onTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const TeamManagementScreen(),
+                        ),
+                      ).then((_) => _fetchDashboardData()),
+                    ),
+                  _buildActionCard(
+                    title: 'Toplu Tahakkuk',
+                    description: 'Tüm mükelleflere tek tuşla borç yansıt.',
+                    icon: Icons.receipt_long,
+                    width: cardWidth,
+                    onTap: _showTopluTahakkukDialog,
+                  ),
+                  _buildActionCard(
+                    title: 'Geciken Ödemeler',
+                    description:
+                        'Vadesi geçmiş alacakları görüntüle ve ekstre al.',
+                    icon: Icons.warning_amber_rounded,
+                    width: cardWidth,
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const OverduePaymentsScreen(),
+                      ),
+                    ).then((_) => _fetchDashboardData()),
+                  ),
+                  _buildActionCard(
+                    title: 'Kasa & Hareketler',
+                    description: 'Tüm nakit ve banka tahsilatlarını listele.',
+                    icon: Icons.point_of_sale,
+                    width: cardWidth,
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const CashTransactionsScreen(),
+                      ),
+                    ).then((_) => _fetchDashboardData()),
+                  ),
+                  _buildActionCard(
+                    title: 'Dijital Evrak Arşivi',
+                    description:
+                        'Mükellef evraklarını (Vergi Levhası vb.) bulutta sakla.',
+                    icon: Icons.folder_shared,
+                    width: cardWidth,
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const DocumentArchiveScreen(),
+                      ),
+                    ).then((_) => _fetchDashboardData()),
+                  ),
+                ],
+              );
+            },
+          ),
+          const SizedBox(height: 40),
+          const Text(
+            'Son Finansal Hareketler',
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+            ),
+          ),
+          const SizedBox(height: 24),
+          _buildRecentTransactionsTable(true),
+          const SizedBox(height: 40),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRecentTransactionsTable(bool isDesktop) {
     if (_recentTransactions.isEmpty) {
       return Container(
         width: double.infinity,
-        padding: const EdgeInsets.all(32),
+        padding: EdgeInsets.all(isDesktop ? 32 : 20),
         decoration: BoxDecoration(
           color: const Color(0xFF1A1A20),
           borderRadius: BorderRadius.circular(16),
@@ -812,7 +1137,7 @@ class _AnaEkranState extends State<AnaEkran> {
         ),
         child: const Text(
           'Ofisinizde henüz hiçbir finansal hareket kaydedilmemiş.',
-          style: TextStyle(color: Colors.white54, fontSize: 15),
+          style: TextStyle(color: Colors.white54, fontSize: 13),
           textAlign: TextAlign.center,
         ),
       );
@@ -846,9 +1171,9 @@ class _AnaEkranState extends State<AnaEkran> {
             } catch (_) {}
           }
           return ListTile(
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 24,
-              vertical: 12,
+            contentPadding: EdgeInsets.symmetric(
+              horizontal: isDesktop ? 24 : 16,
+              vertical: 8,
             ),
             leading: CircleAvatar(
               backgroundColor: isPaid
@@ -865,14 +1190,14 @@ class _AnaEkranState extends State<AnaEkran> {
               style: const TextStyle(
                 color: Colors.white,
                 fontWeight: FontWeight.bold,
-                fontSize: 15,
+                fontSize: 14,
               ),
             ),
             subtitle: Padding(
               padding: const EdgeInsets.only(top: 4.0),
               child: Text(
-                '${t['description'] ?? ''} • $dateText',
-                style: const TextStyle(color: Colors.white54, fontSize: 12),
+                '${t['description'] ?? ''}\n$dateText',
+                style: const TextStyle(color: Colors.white54, fontSize: 11),
               ),
             ),
             trailing: Text(
@@ -880,7 +1205,7 @@ class _AnaEkranState extends State<AnaEkran> {
               style: TextStyle(
                 color: isPaid ? Colors.greenAccent : Colors.orangeAccent,
                 fontWeight: FontWeight.bold,
-                fontSize: 16,
+                fontSize: 15,
               ),
             ),
           );
@@ -893,80 +1218,96 @@ class _AnaEkranState extends State<AnaEkran> {
     return Container(
       width: 260,
       color: const Color(0xFF16161A),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(32.0),
-            child: Row(
-              children: [
-                const Icon(
-                  Icons.layers_rounded,
-                  color: Color(0xFF00ACC1),
-                  size: 32,
-                ), // YENİ LOGO
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    _companyName.isNotEmpty ? _companyName : 'Mükellef Takip',
-                    style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                    ),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ), // YENİ İSİM
-              ],
-            ),
-          ),
-          _buildSidebarItem(
-            icon: Icons.dashboard,
-            title: 'Gösterge Paneli',
-            index: 0,
-          ),
-          _buildSidebarItem(icon: Icons.people, title: 'Mükellefler', index: 1),
-          _buildSidebarItem(
-            icon: Icons.account_balance_wallet,
-            title: 'Kasa & Tahsilat',
-            index: 2,
-          ),
-          _buildSidebarItem(
-            icon: Icons.assignment_turned_in,
-            title: 'Görev & İş Takibi',
-            index: 3,
-          ),
-          _buildSidebarItem(
-            icon: Icons.picture_as_pdf,
-            title: 'Raporlar',
-            index: 4,
-          ),
-          const Spacer(),
-          const Divider(color: Colors.white12, height: 1),
-          if (_userRole == 'admin')
-            _buildSidebarItem(
-              icon: Icons.settings,
-              title: 'Şirket Ayarları',
-              index: 5,
-            ),
-          InkWell(
-            onTap: _signOut,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
-              child: const Row(
+      child: SafeArea(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(24.0),
+              child: Row(
                 children: [
-                  Icon(Icons.logout, color: Colors.redAccent, size: 22),
-                  SizedBox(width: 16),
-                  Text(
-                    'Çıkış Yap',
-                    style: TextStyle(color: Colors.redAccent, fontSize: 15),
+                  Image.asset(
+                    'assets/logo.png',
+                    height: 38,
+                    fit: BoxFit.contain,
+                    errorBuilder: (_, __, ___) => const Icon(
+                      Icons.layers_rounded,
+                      color: Color(0xFF00ACC1),
+                      size: 32,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      _companyName.isNotEmpty ? _companyName : 'Mükellef Takip',
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ),
                 ],
               ),
             ),
-          ),
-          const SizedBox(height: 24),
-        ],
+            const Divider(color: Colors.white12, height: 1),
+            const SizedBox(height: 8),
+            _buildSidebarItem(
+              icon: Icons.dashboard,
+              title: 'Gösterge Paneli',
+              index: 0,
+            ),
+            _buildSidebarItem(
+              icon: Icons.people,
+              title: 'Mükellefler',
+              index: 1,
+            ),
+            _buildSidebarItem(
+              icon: Icons.account_balance_wallet,
+              title: 'Kasa & Tahsilat',
+              index: 2,
+            ),
+            _buildSidebarItem(
+              icon: Icons.assignment_turned_in,
+              title: 'Görev & İş Takibi',
+              index: 3,
+            ),
+            _buildSidebarItem(
+              icon: Icons.picture_as_pdf,
+              title: 'Raporlar',
+              index: 4,
+            ),
+            const Spacer(),
+            const Divider(color: Colors.white12, height: 1),
+            if (_userRole == 'admin')
+              _buildSidebarItem(
+                icon: Icons.settings,
+                title: 'Şirket Ayarları',
+                index: 5,
+              ),
+            InkWell(
+              onTap: _signOut,
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 28,
+                  vertical: 16,
+                ),
+                child: const Row(
+                  children: [
+                    Icon(Icons.logout, color: Colors.redAccent, size: 22),
+                    SizedBox(width: 16),
+                    Text(
+                      'Çıkış Yap',
+                      style: TextStyle(color: Colors.redAccent, fontSize: 15),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+          ],
+        ),
       ),
     );
   }
@@ -980,41 +1321,44 @@ class _AnaEkranState extends State<AnaEkran> {
     return InkWell(
       onTap: () {
         setState(() => _selectedIndex = index);
-        if (MediaQuery.of(context).size.width <= 800) Navigator.pop(context);
-        if (index == 1)
+        if (MediaQuery.of(context).size.width <= 800) {
+          Navigator.pop(context);
+        }
+        if (index == 1) {
           Navigator.push(
             context,
             MaterialPageRoute(builder: (context) => const ClientListScreen()),
           ).then((_) => _fetchDashboardData());
-        else if (index == 2)
+        } else if (index == 2) {
           Navigator.push(
             context,
             MaterialPageRoute(
               builder: (context) => const CashTransactionsScreen(),
             ),
           ).then((_) => _fetchDashboardData());
-        else if (index == 3)
+        } else if (index == 3) {
           Navigator.push(
             context,
             MaterialPageRoute(
               builder: (context) => const TaskManagementScreen(),
             ),
           ).then((_) => _fetchDashboardData());
-        else if (index == 4)
+        } else if (index == 4) {
           Navigator.push(
             context,
             MaterialPageRoute(builder: (context) => const ReportsScreen()),
           ).then((_) => _fetchDashboardData());
-        else if (index == 5)
+        } else if (index == 5) {
           Navigator.push(
             context,
             MaterialPageRoute(
               builder: (context) => const CompanySettingsScreen(),
             ),
           ).then((_) => _fetchDashboardData());
+        }
       },
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+        padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 15),
         decoration: BoxDecoration(
           border: Border(
             right: BorderSide(

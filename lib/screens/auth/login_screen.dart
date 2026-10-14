@@ -3,7 +3,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../dashboard/ana_ekran.dart';
 import 'register_screen.dart';
-import 'company_register_screen.dart'; // YENİ ŞİRKET KAYIT EKRANI
+import 'company_register_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -112,13 +112,16 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isMobile = MediaQuery.of(context).size.width < 500;
+
     return Scaffold(
       backgroundColor: const Color(0xFF101014),
       body: Center(
         child: SingleChildScrollView(
+          padding: EdgeInsets.all(isMobile ? 16 : 0),
           child: Container(
             width: 400,
-            padding: const EdgeInsets.all(40),
+            padding: EdgeInsets.all(isMobile ? 24 : 40),
             decoration: BoxDecoration(
               color: const Color(0xFF1A1A20),
               borderRadius: BorderRadius.circular(16),
@@ -134,33 +137,31 @@ class _LoginScreenState extends State<LoginScreen> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF00ACC1).withValues(alpha: 0.1),
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(
-                    Icons.layers_rounded,
-                    color: Color(0xFF00ACC1),
-                    size: 48,
-                  ),
-                ),
-                const SizedBox(height: 24),
-                const Text(
-                  'Mükellef Takip',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 26,
-                    fontWeight: FontWeight.bold,
+                // GERÇEK LOGOMUZ BURADA GÖSTERİLİYOR
+                Image.asset(
+                  'assets/logo.png',
+                  height: 110,
+                  fit: BoxFit.contain,
+                  errorBuilder: (context, error, stackTrace) => Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF00ACC1).withValues(alpha: 0.1),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.layers_rounded,
+                      color: Color(0xFF00ACC1),
+                      size: 48,
+                    ),
                   ),
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 16),
                 const Text(
                   'Kurumsal Müşteri & Finans Yönetimi',
                   style: TextStyle(color: Colors.white54, fontSize: 14),
+                  textAlign: TextAlign.center,
                 ),
-                const SizedBox(height: 40),
+                const SizedBox(height: 32),
 
                 TextField(
                   controller: _emailController,
@@ -222,7 +223,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                   ],
                 ),
-                const SizedBox(height: 32),
+                const SizedBox(height: 28),
 
                 SizedBox(
                   width: double.infinity,
@@ -257,7 +258,6 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
                 const SizedBox(height: 24),
 
-                // YENİ DÜZENLENEN TAŞMAYAN ALT KISIM
                 const Divider(color: Colors.white12),
                 const SizedBox(height: 8),
                 Column(
@@ -272,6 +272,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       child: const Text(
                         'Yeni Şirket / Ofis Hesabı Oluştur',
                         style: TextStyle(color: Colors.white70),
+                        textAlign: TextAlign.center,
                       ),
                     ),
                     TextButton(
@@ -287,6 +288,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           color: Color(0xFF00ACC1),
                           fontWeight: FontWeight.bold,
                         ),
+                        textAlign: TextAlign.center,
                       ),
                     ),
                   ],

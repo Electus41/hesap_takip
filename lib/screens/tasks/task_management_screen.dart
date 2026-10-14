@@ -68,15 +68,10 @@ class _TaskManagementScreenState extends State<TaskManagementScreen> {
   void _showUserFriendlyError(dynamic error) {
     if (!mounted) return;
     String errorMessage =
-        'İşleminiz şu anda gerçekleştirilemiyor. Lütfen internet bağlantınızı kontrol edin.';
-
-    if (error is PostgrestException) {
-      if (error.code == '42501') {
-        errorMessage =
-            'Sistemsel Güvenlik Engeli (RLS): Veritabanı güvenlik kuralları bu işlemi yapmanıza izin vermiyor.';
-      } else {
-        errorMessage = 'Veritabanı ile iletişimde bir sorun oluştu.';
-      }
+        'İşleminiz şu anda gerçekleştirilemiyor. Lütfen bağlantınızı kontrol edin.';
+    if (error is PostgrestException && error.code == '42501') {
+      errorMessage =
+          'Sistemsel Güvenlik Engeli (RLS): Veritabanı güvenlik kuralları bu işleme izin vermiyor.';
     }
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -97,9 +92,7 @@ class _TaskManagementScreenState extends State<TaskManagementScreen> {
     );
   }
 
-  // --- SÜRÜKLE BIRAK SONRASI HIZLI GÜNCELLEME ---
   Future<void> _updateTaskStatus(String taskId, String newStatus) async {
-    // 1. Ekranı anında güncelle (Kullanıcı beklemesin, kart anında geçsin)
     setState(() {
       final taskIndex = _tasks.indexWhere((t) => t['id'] == taskId);
       if (taskIndex != -1) {
@@ -107,7 +100,6 @@ class _TaskManagementScreenState extends State<TaskManagementScreen> {
       }
     });
 
-    // 2. Arka planda veritabanına kaydet
     try {
       await supabase
           .from('tasks')
@@ -115,7 +107,7 @@ class _TaskManagementScreenState extends State<TaskManagementScreen> {
           .eq('id', taskId);
     } catch (e) {
       _showUserFriendlyError(e);
-      _fetchData(); // Hata olursa tabloyu eski orijinal haline geri döndür
+      _fetchData();
     }
   }
 
@@ -140,8 +132,15 @@ class _TaskManagementScreenState extends State<TaskManagementScreen> {
       barrierDismissible: false,
       builder: (context) => StatefulBuilder(
         builder: (context, setDialogState) {
+          final screenWidth = MediaQuery.of(context).size.width;
+          final isMobile = screenWidth < 600;
+
           return AlertDialog(
             backgroundColor: const Color(0xFF1A1A20),
+            insetPadding: EdgeInsets.symmetric(
+              horizontal: isMobile ? 16 : 40,
+              vertical: 24,
+            ),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(16),
             ),
@@ -163,7 +162,7 @@ class _TaskManagementScreenState extends State<TaskManagementScreen> {
                   )
                 : SingleChildScrollView(
                     child: SizedBox(
-                      width: 400,
+                      width: isMobile ? screenWidth : 420,
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
@@ -185,6 +184,7 @@ class _TaskManagementScreenState extends State<TaskManagementScreen> {
                           ),
                           const SizedBox(height: 16),
                           DropdownButtonFormField<String>(
+                            isExpanded: true,
                             dropdownColor: const Color(0xFF222222),
                             style: const TextStyle(color: Colors.white),
                             decoration: InputDecoration(
@@ -207,7 +207,10 @@ class _TaskManagementScreenState extends State<TaskManagementScreen> {
                               ..._clients.map(
                                 (c) => DropdownMenuItem<String>(
                                   value: c['id'],
-                                  child: Text(c['title']),
+                                  child: Text(
+                                    c['title'],
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
                                 ),
                               ),
                             ],
@@ -217,6 +220,7 @@ class _TaskManagementScreenState extends State<TaskManagementScreen> {
                           ),
                           const SizedBox(height: 16),
                           DropdownButtonFormField<String>(
+                            isExpanded: true,
                             dropdownColor: const Color(0xFF222222),
                             style: const TextStyle(color: Colors.white),
                             decoration: InputDecoration(
@@ -239,7 +243,10 @@ class _TaskManagementScreenState extends State<TaskManagementScreen> {
                               ..._personnel.map(
                                 (p) => DropdownMenuItem<String>(
                                   value: p['id'],
-                                  child: Text(p['full_name']),
+                                  child: Text(
+                                    p['full_name'],
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
                                 ),
                               ),
                             ],
@@ -271,7 +278,7 @@ class _TaskManagementScreenState extends State<TaskManagementScreen> {
                             child: Container(
                               padding: const EdgeInsets.symmetric(
                                 horizontal: 16,
-                                vertical: 20,
+                                vertical: 18,
                               ),
                               decoration: BoxDecoration(
                                 color: const Color(0xFF101014),
@@ -357,7 +364,6 @@ class _TaskManagementScreenState extends State<TaskManagementScreen> {
     );
   }
 
-  // --- KARTIN KENDİSİNİ ÇİZEN WİDGET (Sürükleme sırasındaki görünüm için ayırdık) ---
   Widget _buildTaskCard(Map<String, dynamic> t, String statusKey) {
     final clientTitle = _clients.firstWhere(
       (c) => c['id'] == t['client_id'],
@@ -408,10 +414,11 @@ class _TaskManagementScreenState extends State<TaskManagementScreen> {
                 ),
                 color: const Color(0xFF222222),
                 onSelected: (value) {
-                  if (value == 'delete')
+                  if (value == 'delete') {
                     _deleteTask(t['id']);
-                  else
+                  } else {
                     _updateTaskStatus(t['id'], value);
+                  }
                 },
                 itemBuilder: (context) => [
                   if (statusKey != 'todo')
@@ -426,15 +433,15 @@ class _TaskManagementScreenState extends State<TaskManagementScreen> {
                     const PopupMenuItem(
                       value: 'in_progress',
                       child: Text(
-                        'İşlemde',
-                        style: TextStyle(color: Colors.white),
+                        'İşlemdeye Al',
+                        style: TextStyle(color: Colors.blueAccent),
                       ),
                     ),
                   if (statusKey != 'completed')
                     const PopupMenuItem(
                       value: 'completed',
                       child: Text(
-                        'Tamamlandı',
+                        'Tamamlandı İşaretle',
                         style: TextStyle(color: Colors.greenAccent),
                       ),
                     ),
@@ -457,7 +464,8 @@ class _TaskManagementScreenState extends State<TaskManagementScreen> {
               Expanded(
                 child: Text(
                   clientTitle,
-                  style: const TextStyle(color: Colors.white54, fontSize: 12),
+                  style: const TextStyle(color: Colors.white54, fontSize: 13),
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
             ],
@@ -470,7 +478,8 @@ class _TaskManagementScreenState extends State<TaskManagementScreen> {
               Expanded(
                 child: Text(
                   personnelName,
-                  style: const TextStyle(color: Colors.white54, fontSize: 12),
+                  style: const TextStyle(color: Colors.white54, fontSize: 13),
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
             ],
@@ -484,7 +493,7 @@ class _TaskManagementScreenState extends State<TaskManagementScreen> {
                   color: isLate
                       ? Colors.redAccent.withValues(alpha: 0.2)
                       : Colors.white12,
-                  borderRadius: BorderRadius.circular(4),
+                  borderRadius: BorderRadius.circular(6),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
@@ -512,28 +521,62 @@ class _TaskManagementScreenState extends State<TaskManagementScreen> {
     );
   }
 
-  // --- SÜRÜKLE BIRAK (DRAG & DROP) ÖZELLİKLİ KOLON ---
-  Widget _buildKanbanColumn(String title, String statusKey, Color color) {
+  // MOBİL İÇİN LİSTE GÖRÜNÜMÜ (Tam genişlikte ferah kartlar)
+  Widget _buildMobileTaskList(String statusKey, Color color) {
+    final columnTasks = _tasks
+        .where((t) => (t['status'] ?? 'todo') == statusKey)
+        .toList();
+    if (columnTasks.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.assignment_turned_in_outlined,
+              size: 64,
+              color: Colors.white.withValues(alpha: 0.15),
+            ),
+            const SizedBox(height: 12),
+            const Text(
+              'Bu aşamada görev bulunmuyor.',
+              style: TextStyle(color: Colors.white54),
+            ),
+          ],
+        ),
+      );
+    }
+    return ListView.builder(
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 80),
+      itemCount: columnTasks.length,
+      itemBuilder: (context, index) =>
+          _buildTaskCard(columnTasks[index], statusKey),
+    );
+  }
+
+  // WEB İÇİN YAN YANA KANBAN SÜTUNU (Drag & Drop destekli)
+  Widget _buildDesktopKanbanColumn(
+    String title,
+    String statusKey,
+    Color color,
+  ) {
     final columnTasks = _tasks
         .where((t) => (t['status'] ?? 'todo') == statusKey)
         .toList();
 
     return Expanded(
       child: DragTarget<String>(
-        onWillAccept: (data) => true, // Her türlü ID'yi kabul et
-        onAccept: (taskId) {
-          // Eğer aynı kolona bırakılmadıysa durumu güncelle
+        onWillAcceptWithDetails: (details) => true,
+        onAcceptWithDetails: (details) {
+          final taskId = details.data;
           final task = _tasks.firstWhere((t) => t['id'] == taskId);
           if (task['status'] != statusKey) {
             _updateTaskStatus(taskId, statusKey);
           }
         },
         builder: (context, candidateData, rejectedData) {
-          // Üzerine bir kart sürüklendiğinde kolonun rengini hafifçe parlatıyoruz
           final isHovering = candidateData.isNotEmpty;
-
           return Container(
-            margin: const EdgeInsets.symmetric(horizontal: 12),
+            margin: const EdgeInsets.symmetric(horizontal: 10),
             decoration: BoxDecoration(
               color: isHovering
                   ? const Color(0xFF1E1E26)
@@ -556,12 +599,15 @@ class _TaskManagementScreenState extends State<TaskManagementScreen> {
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(
-                        title,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
+                      Expanded(
+                        child: Text(
+                          title,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 15,
+                          ),
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ),
                       Container(
@@ -591,23 +637,20 @@ class _TaskManagementScreenState extends State<TaskManagementScreen> {
                     itemBuilder: (context, index) {
                       final t = columnTasks[index];
                       final cardWidget = _buildTaskCard(t, statusKey);
-
-                      // DRAGGABLE: Kartı Sürüklenebilir Hale Getiriyoruz
                       return Draggable<String>(
-                        data: t['id'], // Taşınan veri (Görev ID'si)
+                        data: t['id'],
                         feedback: Material(
                           color: Colors.transparent,
                           child: SizedBox(
-                            width:
-                                300, // Sürüklenirken kartın havada durma boyutu
+                            width: 280,
                             child: Opacity(opacity: 0.9, child: cardWidget),
                           ),
                         ),
                         childWhenDragging: Opacity(
                           opacity: 0.3,
                           child: cardWidget,
-                        ), // Geride kalan asıl kartın soluk hali
-                        child: cardWidget, // Normal duruşu
+                        ),
+                        child: cardWidget,
                       );
                     },
                   ),
@@ -622,6 +665,78 @@ class _TaskManagementScreenState extends State<TaskManagementScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isMobile = MediaQuery.of(context).size.width < 800;
+
+    final todoCount = _tasks
+        .where((t) => (t['status'] ?? 'todo') == 'todo')
+        .length;
+    final inProgressCount = _tasks
+        .where((t) => t['status'] == 'in_progress')
+        .length;
+    final completedCount = _tasks
+        .where((t) => t['status'] == 'completed')
+        .length;
+
+    // MOBİL GÖRÜNÜM: SEKMELİ (TABBAR) YAPI
+    if (isMobile) {
+      return DefaultTabController(
+        length: 3,
+        child: Scaffold(
+          backgroundColor: const Color(0xFF101014),
+          appBar: AppBar(
+            backgroundColor: const Color(0xFF16161A),
+            title: const Text(
+              'Görev & İş Takibi',
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+                fontSize: 18,
+              ),
+            ),
+            iconTheme: const IconThemeData(color: Colors.white),
+            bottom: TabBar(
+              indicatorColor: const Color(0xFF00ACC1),
+              labelColor: Colors.white,
+              unselectedLabelColor: Colors.white54,
+              labelStyle: const TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 12,
+              ),
+              tabs: [
+                Tab(text: 'Yapılacak ($todoCount)'),
+                Tab(text: 'İşlemde ($inProgressCount)'),
+                Tab(text: 'Biten ($completedCount)'),
+              ],
+            ),
+          ),
+          body: _isLoading
+              ? const Center(
+                  child: CircularProgressIndicator(color: Color(0xFF00ACC1)),
+                )
+              : TabBarView(
+                  children: [
+                    _buildMobileTaskList('todo', Colors.orange),
+                    _buildMobileTaskList('in_progress', Colors.blueAccent),
+                    _buildMobileTaskList('completed', Colors.greenAccent),
+                  ],
+                ),
+          floatingActionButton: FloatingActionButton.extended(
+            onPressed: _showTaskDialog,
+            backgroundColor: const Color(0xFF00ACC1),
+            icon: const Icon(Icons.add, color: Colors.white),
+            label: const Text(
+              'Yeni Görev',
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
+    // WEB / MASAÜSTÜ GÖRÜNÜM: YAN YANA 3 SÜTUN KANBAN
     return Scaffold(
       backgroundColor: const Color(0xFF101014),
       appBar: AppBar(
@@ -641,13 +756,17 @@ class _TaskManagementScreenState extends State<TaskManagementScreen> {
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _buildKanbanColumn('Yapılacaklar', 'todo', Colors.orange),
-                  _buildKanbanColumn(
+                  _buildDesktopKanbanColumn(
+                    'Yapılacaklar',
+                    'todo',
+                    Colors.orange,
+                  ),
+                  _buildDesktopKanbanColumn(
                     'İşlemde (Devam Eden)',
                     'in_progress',
                     Colors.blueAccent,
                   ),
-                  _buildKanbanColumn(
+                  _buildDesktopKanbanColumn(
                     'Tamamlanan İşler',
                     'completed',
                     Colors.greenAccent,
