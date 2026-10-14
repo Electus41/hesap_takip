@@ -14,11 +14,9 @@ class _TaskManagementScreenState extends State<TaskManagementScreen> {
   bool _isLoading = true;
   String _companyId = '';
 
-  List<Map<String, dynamic>> _todoTasks = [];
-  List<Map<String, dynamic>> _inProgressTasks = [];
-  List<Map<String, dynamic>> _doneTasks = [];
+  List<Map<String, dynamic>> _tasks = [];
   List<Map<String, dynamic>> _clients = [];
-  List<Map<String, dynamic>> _staff = [];
+  List<Map<String, dynamic>> _personnel = [];
 
   @override
   void initState() {
@@ -38,78 +36,103 @@ class _TaskManagementScreenState extends State<TaskManagementScreen> {
           .single();
       _companyId = profile['company_id'];
 
-      // Mükellefleri Çek
+      final tasksRes = await supabase
+          .from('tasks')
+          .select()
+          .eq('company_id', _companyId)
+          .order('created_at', ascending: false);
       final clientsRes = await supabase
           .from('clients')
           .select('id, title')
           .eq('company_id', _companyId)
-          .eq('is_active', true)
-          .order('title');
-      _clients = List<Map<String, dynamic>>.from(clientsRes);
-
-      // Personelleri Çek
-      final staffRes = await supabase
+          .order('title', ascending: true);
+      final personnelRes = await supabase
           .from('profiles')
           .select('id, full_name')
-          .eq('company_id', _companyId);
-      _staff = List<Map<String, dynamic>>.from(staffRes);
-
-      _fetchTasks();
-    } catch (e) {
-      debugPrint('Veri çekme hatası: $e');
-      if (mounted) setState(() => _isLoading = false);
-    }
-  }
-
-  Future<void> _fetchTasks() async {
-    try {
-      final tasksRes = await supabase
-          .from('tasks')
-          .select(
-            '*, clients(title), profiles!tasks_assigned_to_fkey(full_name)',
-          )
           .eq('company_id', _companyId)
-          .order('due_date', ascending: true);
-
-      final List<Map<String, dynamic>> allTasks =
-          List<Map<String, dynamic>>.from(tasksRes);
+          .order('full_name', ascending: true);
 
       if (mounted) {
         setState(() {
-          _todoTasks = allTasks.where((t) => t['status'] == 'todo').toList();
-          _inProgressTasks = allTasks
-              .where((t) => t['status'] == 'in_progress')
-              .toList();
-          _doneTasks = allTasks.where((t) => t['status'] == 'done').toList();
+          _tasks = List<Map<String, dynamic>>.from(tasksRes);
+          _clients = List<Map<String, dynamic>>.from(clientsRes);
+          _personnel = List<Map<String, dynamic>>.from(personnelRes);
           _isLoading = false;
         });
       }
     } catch (e) {
-      debugPrint('Görev çekme hatası: $e');
       if (mounted) setState(() => _isLoading = false);
     }
   }
 
+  void _showUserFriendlyError(dynamic error) {
+    if (!mounted) return;
+    String errorMessage =
+        'İşleminiz şu anda gerçekleştirilemiyor. Lütfen internet bağlantınızı kontrol edin.';
+
+    if (error is PostgrestException) {
+      if (error.code == '42501') {
+        errorMessage =
+            'Sistemsel Güvenlik Engeli (RLS): Veritabanı güvenlik kuralları bu işlemi yapmanıza izin vermiyor.';
+      } else {
+        errorMessage = 'Veritabanı ile iletişimde bir sorun oluştu.';
+      }
+    }
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            const Icon(Icons.error_outline, color: Colors.white),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                errorMessage,
+                style: const TextStyle(color: Colors.white),
+              ),
+            ),
+          ],
+        ),
+        backgroundColor: Colors.orange[800],
+      ),
+    );
+  }
+
+  // --- SÜRÜKLE BIRAK SONRASI HIZLI GÜNCELLEME ---
   Future<void> _updateTaskStatus(String taskId, String newStatus) async {
+    // 1. Ekranı anında güncelle (Kullanıcı beklemesin, kart anında geçsin)
+    setState(() {
+      final taskIndex = _tasks.indexWhere((t) => t['id'] == taskId);
+      if (taskIndex != -1) {
+        _tasks[taskIndex]['status'] = newStatus;
+      }
+    });
+
+    // 2. Arka planda veritabanına kaydet
     try {
       await supabase
           .from('tasks')
           .update({'status': newStatus})
           .eq('id', taskId);
-      _fetchTasks();
     } catch (e) {
-      if (mounted)
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('Durum güncellenemedi.')));
+      _showUserFriendlyError(e);
+      _fetchData(); // Hata olursa tabloyu eski orijinal haline geri döndür
     }
   }
 
-  void _showNewTaskDialog() {
-    String? selectedClientId;
-    String? selectedStaffId;
+  Future<void> _deleteTask(String taskId) async {
+    try {
+      await supabase.from('tasks').delete().eq('id', taskId);
+      _fetchData();
+    } catch (e) {
+      _showUserFriendlyError(e);
+    }
+  }
+
+  void _showTaskDialog() {
     final titleController = TextEditingController();
-    DateTime selectedDate = DateTime.now().add(const Duration(days: 1));
+    String? selectedClientId;
+    String? selectedPersonnelId;
+    DateTime? selectedDate;
     bool isProcessing = false;
 
     showDialog(
@@ -139,113 +162,143 @@ class _TaskManagementScreenState extends State<TaskManagementScreen> {
                     ),
                   )
                 : SingleChildScrollView(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        TextField(
-                          controller: titleController,
-                          style: const TextStyle(color: Colors.white),
-                          decoration: InputDecoration(
-                            labelText: 'Görev Adı (Örn: Ekim KDV Beyannamesi)',
-                            labelStyle: const TextStyle(color: Colors.white54),
-                            filled: true,
-                            fillColor: const Color(0xFF101014),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide.none,
+                    child: SizedBox(
+                      width: 400,
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          TextField(
+                            controller: titleController,
+                            style: const TextStyle(color: Colors.white),
+                            decoration: InputDecoration(
+                              labelText: 'Görev Adı',
+                              labelStyle: const TextStyle(
+                                color: Colors.white54,
+                              ),
+                              filled: true,
+                              fillColor: const Color(0xFF101014),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: BorderSide.none,
+                              ),
                             ),
                           ),
-                        ),
-                        const SizedBox(height: 16),
-
-                        DropdownButtonFormField<String>(
-                          dropdownColor: const Color(0xFF222222),
-                          style: const TextStyle(color: Colors.white),
-                          decoration: InputDecoration(
-                            labelText: 'İlgili Mükellef',
-                            labelStyle: const TextStyle(color: Colors.white54),
-                            filled: true,
-                            fillColor: const Color(0xFF101014),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide.none,
+                          const SizedBox(height: 16),
+                          DropdownButtonFormField<String>(
+                            dropdownColor: const Color(0xFF222222),
+                            style: const TextStyle(color: Colors.white),
+                            decoration: InputDecoration(
+                              labelText: 'İlgili Mükellef (Opsiyonel)',
+                              labelStyle: const TextStyle(
+                                color: Colors.white54,
+                              ),
+                              filled: true,
+                              fillColor: const Color(0xFF101014),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: BorderSide.none,
+                              ),
                             ),
-                          ),
-                          items: _clients
-                              .map(
+                            items: [
+                              const DropdownMenuItem<String>(
+                                value: null,
+                                child: Text('Seçiniz'),
+                              ),
+                              ..._clients.map(
                                 (c) => DropdownMenuItem<String>(
-                                  value: c['id'].toString(),
-                                  child: Text(c['title'].toString()),
+                                  value: c['id'],
+                                  child: Text(c['title']),
                                 ),
-                              )
-                              .toList(),
-                          onChanged: (value) =>
-                              setDialogState(() => selectedClientId = value),
-                        ),
-                        const SizedBox(height: 16),
-
-                        DropdownButtonFormField<String>(
-                          dropdownColor: const Color(0xFF222222),
-                          style: const TextStyle(color: Colors.white),
-                          decoration: InputDecoration(
-                            labelText: 'Atanan Personel (Opsiyonel)',
-                            labelStyle: const TextStyle(color: Colors.white54),
-                            filled: true,
-                            fillColor: const Color(0xFF101014),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide.none,
+                              ),
+                            ],
+                            value: selectedClientId,
+                            onChanged: (value) =>
+                                setDialogState(() => selectedClientId = value),
+                          ),
+                          const SizedBox(height: 16),
+                          DropdownButtonFormField<String>(
+                            dropdownColor: const Color(0xFF222222),
+                            style: const TextStyle(color: Colors.white),
+                            decoration: InputDecoration(
+                              labelText: 'Atanan Personel (Opsiyonel)',
+                              labelStyle: const TextStyle(
+                                color: Colors.white54,
+                              ),
+                              filled: true,
+                              fillColor: const Color(0xFF101014),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: BorderSide.none,
+                              ),
+                            ),
+                            items: [
+                              const DropdownMenuItem<String>(
+                                value: null,
+                                child: Text('Kendime Ata'),
+                              ),
+                              ..._personnel.map(
+                                (p) => DropdownMenuItem<String>(
+                                  value: p['id'],
+                                  child: Text(p['full_name']),
+                                ),
+                              ),
+                            ],
+                            value: selectedPersonnelId,
+                            onChanged: (value) => setDialogState(
+                              () => selectedPersonnelId = value,
                             ),
                           ),
-                          items: _staff
-                              .map(
-                                (s) => DropdownMenuItem<String>(
-                                  value: s['id'].toString(),
-                                  child: Text(s['full_name'].toString()),
+                          const SizedBox(height: 16),
+                          InkWell(
+                            onTap: () async {
+                              final date = await showDatePicker(
+                                context: context,
+                                initialDate: DateTime.now(),
+                                firstDate: DateTime.now(),
+                                lastDate: DateTime(2030),
+                                builder: (context, child) => Theme(
+                                  data: ThemeData.dark().copyWith(
+                                    colorScheme: const ColorScheme.dark(
+                                      primary: Color(0xFF00ACC1),
+                                    ),
+                                  ),
+                                  child: child!,
                                 ),
-                              )
-                              .toList(),
-                          onChanged: (value) =>
-                              setDialogState(() => selectedStaffId = value),
-                        ),
-                        const SizedBox(height: 16),
-
-                        InkWell(
-                          onTap: () async {
-                            final picked = await showDatePicker(
-                              context: context,
-                              initialDate: selectedDate,
-                              firstDate: DateTime(2020),
-                              lastDate: DateTime(2030),
-                            );
-                            if (picked != null)
-                              setDialogState(() => selectedDate = picked);
-                          },
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical: 18,
-                            ),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFF101014),
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Text(
-                                  'Son Tarih: ${DateFormat('dd.MM.yyyy').format(selectedDate)}',
-                                  style: const TextStyle(color: Colors.white70),
-                                ),
-                                const Icon(
-                                  Icons.calendar_month,
-                                  color: Color(0xFF00ACC1),
-                                ),
-                              ],
+                              );
+                              if (date != null)
+                                setDialogState(() => selectedDate = date);
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 20,
+                              ),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF101014),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text(
+                                    selectedDate != null
+                                        ? 'Son Tarih: ${DateFormat('dd.MM.yyyy').format(selectedDate!)}'
+                                        : 'Son Teslim Tarihi Seç',
+                                    style: const TextStyle(
+                                      color: Colors.white54,
+                                    ),
+                                  ),
+                                  const Icon(
+                                    Icons.calendar_month,
+                                    color: Color(0xFF00ACC1),
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
             actions: isProcessing
@@ -262,32 +315,28 @@ class _TaskManagementScreenState extends State<TaskManagementScreen> {
                       onPressed: () async {
                         if (titleController.text.trim().isEmpty) return;
                         setDialogState(() => isProcessing = true);
-
                         try {
                           await supabase.from('tasks').insert({
                             'company_id': _companyId,
-                            'client_id': selectedClientId,
                             'title': titleController.text.trim(),
+                            'client_id': selectedClientId,
+                            'assigned_to': selectedPersonnelId,
+                            'due_date': selectedDate?.toIso8601String(),
                             'status': 'todo',
-                            'assigned_to': selectedStaffId,
-                            'due_date': selectedDate.toIso8601String().split(
-                              'T',
-                            )[0],
                           });
-
                           if (mounted) {
                             Navigator.pop(context);
-                            _fetchTasks();
+                            _fetchData();
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Görev oluşturuldu!'),
+                                backgroundColor: Colors.green,
+                              ),
+                            );
                           }
                         } catch (e) {
                           setDialogState(() => isProcessing = false);
-                          if (mounted)
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text('Hata: $e'),
-                                backgroundColor: Colors.redAccent,
-                              ),
-                            );
+                          _showUserFriendlyError(e);
                         }
                       },
                       style: ElevatedButton.styleFrom(
@@ -295,10 +344,276 @@ class _TaskManagementScreenState extends State<TaskManagementScreen> {
                       ),
                       child: const Text(
                         'Görevi Oluştur',
-                        style: TextStyle(color: Colors.white),
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ),
                   ],
+          );
+        },
+      ),
+    );
+  }
+
+  // --- KARTIN KENDİSİNİ ÇİZEN WİDGET (Sürükleme sırasındaki görünüm için ayırdık) ---
+  Widget _buildTaskCard(Map<String, dynamic> t, String statusKey) {
+    final clientTitle = _clients.firstWhere(
+      (c) => c['id'] == t['client_id'],
+      orElse: () => {'title': 'Genel Görev'},
+    )['title'];
+    final personnelName = _personnel.firstWhere(
+      (p) => p['id'] == t['assigned_to'],
+      orElse: () => {'full_name': 'Atanmadı'},
+    )['full_name'];
+
+    String dateText = '';
+    bool isLate = false;
+    if (t['due_date'] != null) {
+      final d = DateTime.parse(t['due_date'].toString());
+      dateText = DateFormat('dd.MM.yyyy').format(d);
+      isLate = d.isBefore(DateTime.now()) && statusKey != 'completed';
+    }
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1A1A20),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Expanded(
+                child: Text(
+                  t['title'],
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 15,
+                  ),
+                ),
+              ),
+              PopupMenuButton<String>(
+                icon: const Icon(
+                  Icons.more_vert,
+                  color: Colors.white54,
+                  size: 20,
+                ),
+                color: const Color(0xFF222222),
+                onSelected: (value) {
+                  if (value == 'delete')
+                    _deleteTask(t['id']);
+                  else
+                    _updateTaskStatus(t['id'], value);
+                },
+                itemBuilder: (context) => [
+                  if (statusKey != 'todo')
+                    const PopupMenuItem(
+                      value: 'todo',
+                      child: Text(
+                        'Yapılacaklara Al',
+                        style: TextStyle(color: Colors.white),
+                      ),
+                    ),
+                  if (statusKey != 'in_progress')
+                    const PopupMenuItem(
+                      value: 'in_progress',
+                      child: Text(
+                        'İşlemde',
+                        style: TextStyle(color: Colors.white),
+                      ),
+                    ),
+                  if (statusKey != 'completed')
+                    const PopupMenuItem(
+                      value: 'completed',
+                      child: Text(
+                        'Tamamlandı',
+                        style: TextStyle(color: Colors.greenAccent),
+                      ),
+                    ),
+                  const PopupMenuItem(
+                    value: 'delete',
+                    child: Text(
+                      'Sil',
+                      style: TextStyle(color: Colors.redAccent),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              const Icon(Icons.business, color: Colors.white30, size: 14),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                  clientTitle,
+                  style: const TextStyle(color: Colors.white54, fontSize: 12),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Row(
+            children: [
+              const Icon(Icons.person, color: Colors.white30, size: 14),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                  personnelName,
+                  style: const TextStyle(color: Colors.white54, fontSize: 12),
+                ),
+              ),
+            ],
+          ),
+          if (dateText.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.only(top: 12.0),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: isLate
+                      ? Colors.redAccent.withValues(alpha: 0.2)
+                      : Colors.white12,
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.calendar_today,
+                      color: isLate ? Colors.redAccent : Colors.white54,
+                      size: 12,
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      dateText,
+                      style: TextStyle(
+                        color: isLate ? Colors.redAccent : Colors.white54,
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  // --- SÜRÜKLE BIRAK (DRAG & DROP) ÖZELLİKLİ KOLON ---
+  Widget _buildKanbanColumn(String title, String statusKey, Color color) {
+    final columnTasks = _tasks
+        .where((t) => (t['status'] ?? 'todo') == statusKey)
+        .toList();
+
+    return Expanded(
+      child: DragTarget<String>(
+        onWillAccept: (data) => true, // Her türlü ID'yi kabul et
+        onAccept: (taskId) {
+          // Eğer aynı kolona bırakılmadıysa durumu güncelle
+          final task = _tasks.firstWhere((t) => t['id'] == taskId);
+          if (task['status'] != statusKey) {
+            _updateTaskStatus(taskId, statusKey);
+          }
+        },
+        builder: (context, candidateData, rejectedData) {
+          // Üzerine bir kart sürüklendiğinde kolonun rengini hafifçe parlatıyoruz
+          final isHovering = candidateData.isNotEmpty;
+
+          return Container(
+            margin: const EdgeInsets.symmetric(horizontal: 12),
+            decoration: BoxDecoration(
+              color: isHovering
+                  ? const Color(0xFF1E1E26)
+                  : const Color(0xFF16161A),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: isHovering
+                    ? color.withValues(alpha: 0.5)
+                    : Colors.white.withValues(alpha: 0.05),
+                width: isHovering ? 2 : 1,
+              ),
+            ),
+            child: Column(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    border: Border(bottom: BorderSide(color: color, width: 2)),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        title,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: color.withValues(alpha: 0.2),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          '${columnTasks.length}',
+                          style: TextStyle(
+                            color: color,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Expanded(
+                  child: ListView.builder(
+                    padding: const EdgeInsets.all(16),
+                    itemCount: columnTasks.length,
+                    itemBuilder: (context, index) {
+                      final t = columnTasks[index];
+                      final cardWidget = _buildTaskCard(t, statusKey);
+
+                      // DRAGGABLE: Kartı Sürüklenebilir Hale Getiriyoruz
+                      return Draggable<String>(
+                        data: t['id'], // Taşınan veri (Görev ID'si)
+                        feedback: Material(
+                          color: Colors.transparent,
+                          child: SizedBox(
+                            width:
+                                300, // Sürüklenirken kartın havada durma boyutu
+                            child: Opacity(opacity: 0.9, child: cardWidget),
+                          ),
+                        ),
+                        childWhenDragging: Opacity(
+                          opacity: 0.3,
+                          child: cardWidget,
+                        ), // Geride kalan asıl kartın soluk hali
+                        child: cardWidget, // Normal duruşu
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
           );
         },
       ),
@@ -312,7 +627,7 @@ class _TaskManagementScreenState extends State<TaskManagementScreen> {
       appBar: AppBar(
         backgroundColor: const Color(0xFF16161A),
         title: const Text(
-          'Görev & İş Takibi',
+          'Görev & İş Takibi (Kanban)',
           style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
         iconTheme: const IconThemeData(color: Colors.white),
@@ -321,267 +636,33 @@ class _TaskManagementScreenState extends State<TaskManagementScreen> {
           ? const Center(
               child: CircularProgressIndicator(color: Color(0xFF00ACC1)),
             )
-          : SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: Padding(
-                padding: const EdgeInsets.all(32.0),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildKanbanColumn(
-                      'Yapılacaklar',
-                      'todo',
-                      _todoTasks,
-                      Colors.orangeAccent,
-                    ),
-                    const SizedBox(width: 24),
-                    _buildKanbanColumn(
-                      'İşlemde (Devam Eden)',
-                      'in_progress',
-                      _inProgressTasks,
-                      Colors.blueAccent,
-                    ),
-                    const SizedBox(width: 24),
-                    _buildKanbanColumn(
-                      'Tamamlanan İşler',
-                      'done',
-                      _doneTasks,
-                      Colors.greenAccent,
-                    ),
-                  ],
-                ),
+          : Padding(
+              padding: const EdgeInsets.all(24.0),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildKanbanColumn('Yapılacaklar', 'todo', Colors.orange),
+                  _buildKanbanColumn(
+                    'İşlemde (Devam Eden)',
+                    'in_progress',
+                    Colors.blueAccent,
+                  ),
+                  _buildKanbanColumn(
+                    'Tamamlanan İşler',
+                    'completed',
+                    Colors.greenAccent,
+                  ),
+                ],
               ),
             ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: _showNewTaskDialog,
+        onPressed: _showTaskDialog,
         backgroundColor: const Color(0xFF00ACC1),
         icon: const Icon(Icons.add, color: Colors.white),
         label: const Text(
           'Yeni Görev',
           style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
-      ),
-    );
-  }
-
-  Widget _buildKanbanColumn(
-    String title,
-    String status,
-    List<Map<String, dynamic>> tasks,
-    Color accentColor,
-  ) {
-    return Container(
-      width: 350,
-      decoration: BoxDecoration(
-        color: const Color(0xFF16161A),
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              color: const Color(0xFF1A1A20),
-              borderRadius: const BorderRadius.vertical(
-                top: Radius.circular(16),
-              ),
-              border: Border(bottom: BorderSide(color: accentColor, width: 3)),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  title,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 4,
-                  ),
-                  decoration: BoxDecoration(
-                    color: accentColor.withValues(alpha: 0.2),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Text(
-                    '${tasks.length}',
-                    style: TextStyle(
-                      color: accentColor,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Expanded(
-            child: ListView.builder(
-              padding: const EdgeInsets.all(16),
-              itemCount: tasks.length,
-              itemBuilder: (context, index) {
-                final t = tasks[index];
-                final clientInfo = t['clients'] as Map<String, dynamic>?;
-                final staffInfo = t['profiles'] as Map<String, dynamic>?;
-
-                String dateText = '-';
-                if (t['due_date'] != null) {
-                  try {
-                    dateText = DateFormat(
-                      'dd MMM',
-                    ).format(DateTime.parse(t['due_date']));
-                  } catch (_) {}
-                }
-
-                return Card(
-                  color: const Color(0xFF1A1A20),
-                  margin: const EdgeInsets.only(bottom: 12),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    side: BorderSide(
-                      color: Colors.white.withValues(alpha: 0.05),
-                    ),
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          t['title'],
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 15,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        if (clientInfo != null) ...[
-                          Row(
-                            children: [
-                              const Icon(
-                                Icons.business,
-                                color: Colors.white54,
-                                size: 14,
-                              ),
-                              const SizedBox(width: 6),
-                              Expanded(
-                                child: Text(
-                                  clientInfo['title'],
-                                  style: const TextStyle(
-                                    color: Colors.white54,
-                                    fontSize: 13,
-                                  ),
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 6),
-                        ],
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Row(
-                              children: [
-                                const Icon(
-                                  Icons.calendar_today,
-                                  color: Colors.white54,
-                                  size: 14,
-                                ),
-                                const SizedBox(width: 6),
-                                Text(
-                                  dateText,
-                                  style: TextStyle(
-                                    color: accentColor,
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            if (staffInfo != null)
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 6,
-                                  vertical: 2,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: Colors.white12,
-                                  borderRadius: BorderRadius.circular(4),
-                                ),
-                                child: Text(
-                                  staffInfo['full_name'] ?? '',
-                                  style: const TextStyle(
-                                    color: Colors.white70,
-                                    fontSize: 10,
-                                  ),
-                                ),
-                              ),
-                          ],
-                        ),
-                        const Divider(color: Colors.white12, height: 24),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            if (status != 'todo')
-                              TextButton(
-                                onPressed: () => _updateTaskStatus(
-                                  t['id'],
-                                  status == 'done' ? 'in_progress' : 'todo',
-                                ),
-                                child: const Text(
-                                  '← Geri',
-                                  style: TextStyle(
-                                    color: Colors.white54,
-                                    fontSize: 12,
-                                  ),
-                                ),
-                              ),
-                            if (status != 'done')
-                              TextButton(
-                                onPressed: () => _updateTaskStatus(
-                                  t['id'],
-                                  status == 'todo' ? 'in_progress' : 'done',
-                                ),
-                                child: const Text(
-                                  'İleri →',
-                                  style: TextStyle(
-                                    color: Color(0xFF00ACC1),
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ),
-                            if (status == 'done')
-                              IconButton(
-                                onPressed: () async {
-                                  await supabase
-                                      .from('tasks')
-                                      .delete()
-                                      .eq('id', t['id']);
-                                  _fetchTasks();
-                                },
-                                icon: const Icon(
-                                  Icons.delete,
-                                  color: Colors.redAccent,
-                                  size: 18,
-                                ),
-                              ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                );
-              },
-            ),
-          ),
-        ],
       ),
     );
   }

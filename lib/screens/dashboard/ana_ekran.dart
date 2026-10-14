@@ -22,18 +22,18 @@ class AnaEkran extends StatefulWidget {
 
 class _AnaEkranState extends State<AnaEkran> {
   int _selectedIndex = 0;
-
   String _userName = '';
   String _companyName = '';
   String _userRole = '';
   String _companyId = '';
-
   bool _isLoading = true;
   int _aktifMukellefCount = 0;
   double _bekleyenTahsilat = 0.0;
   double _toplamGelir = 0.0;
 
   List<Map<String, dynamic>> _recentTransactions = [];
+  List<Map<String, dynamic>> _alerts = [];
+  final supabase = Supabase.instance.client;
 
   @override
   void initState() {
@@ -43,16 +43,13 @@ class _AnaEkranState extends State<AnaEkran> {
 
   Future<void> _fetchDashboardData() async {
     try {
-      final supabase = Supabase.instance.client;
       final user = supabase.auth.currentUser;
-
       if (user == null) {
-        if (mounted) {
+        if (mounted)
           Navigator.pushReplacement(
             context,
             MaterialPageRoute(builder: (context) => const LoginScreen()),
           );
-        }
         return;
       }
 
@@ -64,7 +61,6 @@ class _AnaEkranState extends State<AnaEkran> {
       _userName = profileData['full_name'] ?? 'Kullanıcı';
       _userRole = profileData['role'] ?? 'personel';
       _companyId = profileData['company_id'];
-
       final companyInfo = profileData['companies'] as Map<String, dynamic>?;
       _companyName = companyInfo != null
           ? companyInfo['name']
@@ -74,13 +70,17 @@ class _AnaEkranState extends State<AnaEkran> {
           .from('clients')
           .select('id')
           .eq('company_id', _companyId);
-
       final transactionsData = await supabase
           .from('transactions')
-          .select('amount, is_paid')
+          .select('amount, is_paid, due_date, description, clients(title)')
           .eq('company_id', _companyId);
+
       double bekleyen = 0.0;
       double gelir = 0.0;
+      List<Map<String, dynamic>> newAlerts = [];
+      final today = DateTime.now();
+      final limitDate = today.add(const Duration(days: 3));
+
       for (var t in transactionsData) {
         final amount = double.tryParse(t['amount'].toString()) ?? 0.0;
         final isPaid = t['is_paid'] as bool? ?? false;
@@ -88,8 +88,28 @@ class _AnaEkranState extends State<AnaEkran> {
           gelir += amount;
         } else {
           bekleyen += amount;
+          if (t['due_date'] != null) {
+            final dueDate = DateTime.parse(t['due_date'].toString());
+            if (dueDate.isBefore(limitDate)) {
+              newAlerts.add({
+                'amount': amount,
+                'description': t['description'] ?? 'Belirtilmemiş İşlem',
+                'due_date': dueDate,
+                'client': t['clients'] != null
+                    ? t['clients']['title']
+                    : 'Bilinmeyen Mükellef',
+                'is_overdue': dueDate.isBefore(
+                  DateTime(today.year, today.month, today.day),
+                ),
+              });
+            }
+          }
         }
       }
+      newAlerts.sort(
+        (a, b) =>
+            (a['due_date'] as DateTime).compareTo(b['due_date'] as DateTime),
+      );
 
       final recentTxData = await supabase
           .from('transactions')
@@ -103,21 +123,122 @@ class _AnaEkranState extends State<AnaEkran> {
           _aktifMukellefCount = clientsData.length;
           _bekleyenTahsilat = bekleyen;
           _toplamGelir = gelir;
+          _alerts = newAlerts;
           _recentTransactions = List<Map<String, dynamic>>.from(recentTxData);
           _isLoading = false;
         });
       }
     } catch (e) {
-      debugPrint('Dashboard veri hatası: $e');
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
-  Future<void> _showTopluTahakkukDialog() async {
-    final supabase = Supabase.instance.client;
+  void _showNotificationPanel() {
+    final currencyFormatter = NumberFormat.currency(
+      locale: 'tr_TR',
+      symbol: '₺',
+    );
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF1A1A20),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Row(
+          children: [
+            Icon(Icons.notifications_active, color: Colors.white, size: 24),
+            SizedBox(width: 12),
+            Text(
+              'Bildirim Merkezi',
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
+        ),
+        content: SizedBox(
+          width: 500,
+          height: _alerts.isEmpty ? 100 : 400,
+          child: _alerts.isEmpty
+              ? const Center(
+                  child: Text(
+                    'Şu an için yaklaşan veya geciken ödeme yok.\nKasanız güvende! 🎉',
+                    style: TextStyle(color: Colors.white54, fontSize: 16),
+                    textAlign: TextAlign.center,
+                  ),
+                )
+              : ListView.separated(
+                  shrinkWrap: true,
+                  itemCount: _alerts.length,
+                  separatorBuilder: (_, __) =>
+                      const Divider(color: Colors.white12, height: 1),
+                  itemBuilder: (context, index) {
+                    final alert = _alerts[index];
+                    final isOverdue = alert['is_overdue'] as bool;
+                    final dateText = DateFormat(
+                      'dd.MM.yyyy',
+                    ).format(alert['due_date']);
+                    return ListTile(
+                      contentPadding: const EdgeInsets.symmetric(vertical: 8),
+                      leading: CircleAvatar(
+                        backgroundColor: isOverdue
+                            ? Colors.redAccent.withValues(alpha: 0.1)
+                            : Colors.orangeAccent.withValues(alpha: 0.1),
+                        child: Icon(
+                          isOverdue
+                              ? Icons.warning_amber_rounded
+                              : Icons.schedule,
+                          color: isOverdue
+                              ? Colors.redAccent
+                              : Colors.orangeAccent,
+                        ),
+                      ),
+                      title: Text(
+                        alert['client'],
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                        ),
+                      ),
+                      subtitle: Padding(
+                        padding: const EdgeInsets.only(top: 4.0),
+                        child: Text(
+                          '${alert['description']} • Son Gün: $dateText\n${isOverdue ? '⚠️ Vadesi Geçti' : '⏳ Vadesi Yaklaşıyor'}',
+                          style: TextStyle(
+                            color: isOverdue
+                                ? Colors.redAccent
+                                : Colors.orangeAccent,
+                            fontSize: 12,
+                            height: 1.4,
+                          ),
+                        ),
+                      ),
+                      trailing: Text(
+                        currencyFormatter.format(alert['amount']),
+                        style: TextStyle(
+                          color: isOverdue
+                              ? Colors.redAccent
+                              : Colors.orangeAccent,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 15,
+                        ),
+                      ),
+                    );
+                  },
+                ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Kapat', style: TextStyle(color: Colors.white54)),
+          ),
+        ],
+      ),
+    );
+  }
 
+  Future<void> _showTopluTahakkukDialog() async {
     final paymentTypesRes = await supabase
         .from('payment_types')
         .select()
@@ -126,7 +247,7 @@ class _AnaEkranState extends State<AnaEkran> {
     final paymentTypes = List<Map<String, dynamic>>.from(paymentTypesRes);
 
     if (paymentTypes.isEmpty) {
-      if (mounted) {
+      if (mounted)
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text(
@@ -134,10 +255,8 @@ class _AnaEkranState extends State<AnaEkran> {
             ),
           ),
         );
-      }
       return;
     }
-
     final descController = TextEditingController();
     final amountController = TextEditingController();
     String? selectedPaymentTypeId;
@@ -288,7 +407,6 @@ class _AnaEkranState extends State<AnaEkran> {
                             final today = DateTime.now()
                                 .toIso8601String()
                                 .split('T')[0];
-
                             final List<Map<String, dynamic>> batchInserts =
                                 List<Map<String, dynamic>>.from(clientsRes)
                                     .map(
@@ -304,12 +422,10 @@ class _AnaEkranState extends State<AnaEkran> {
                                       },
                                     )
                                     .toList();
-
-                            if (batchInserts.isNotEmpty) {
+                            if (batchInserts.isNotEmpty)
                               await supabase
                                   .from('transactions')
                                   .insert(batchInserts);
-                            }
 
                             if (mounted) {
                               Navigator.pop(context);
@@ -325,14 +441,15 @@ class _AnaEkranState extends State<AnaEkran> {
                             }
                           } catch (e) {
                             setDialogState(() => isProcessing = false);
-                            if (mounted) {
+                            if (mounted)
                               ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text('Hata: $e'),
-                                  backgroundColor: Colors.red,
+                                const SnackBar(
+                                  content: Text(
+                                    'Sistemsel hata, lütfen tekrar deneyin.',
+                                  ),
+                                  backgroundColor: Colors.redAccent,
                                 ),
                               );
-                            }
                           }
                         },
                         style: ElevatedButton.styleFrom(
@@ -356,12 +473,30 @@ class _AnaEkranState extends State<AnaEkran> {
 
   Future<void> _signOut() async {
     await Supabase.instance.client.auth.signOut();
-    if (mounted) {
+    if (mounted)
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (context) => const LoginScreen()),
       );
-    }
+  }
+
+  Widget _buildNotificationBell() {
+    return IconButton(
+      icon: Badge(
+        isLabelVisible: _alerts.isNotEmpty,
+        label: Text(
+          _alerts.length.toString(),
+          style: const TextStyle(fontWeight: FontWeight.bold),
+        ),
+        backgroundColor: Colors.redAccent,
+        child: const Icon(
+          Icons.notifications_active,
+          color: Colors.white,
+          size: 28,
+        ),
+      ),
+      onPressed: _showNotificationPanel,
+    );
   }
 
   @override
@@ -387,13 +522,13 @@ class _AnaEkranState extends State<AnaEkran> {
                   fontWeight: FontWeight.bold,
                 ),
               ),
+              actions: [_buildNotificationBell(), const SizedBox(width: 8)],
             )
           : null,
       body: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           if (isDesktop) _buildSidebar(),
-
           Expanded(
             child: _isLoading
                 ? const Center(
@@ -467,41 +602,42 @@ class _AnaEkranState extends State<AnaEkran> {
                               ],
                             ),
                             if (isDesktop)
-                              InkWell(
-                                onTap: () {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (context) =>
-                                          const ProfileSettingsScreen(),
-                                    ),
-                                  ).then((_) => _fetchDashboardData());
-                                },
-                                borderRadius: BorderRadius.circular(20),
-                                child: CircleAvatar(
-                                  backgroundColor: const Color(0xFF00ACC1),
-                                  child: Text(
-                                    _userName.isNotEmpty
-                                        ? _userName[0].toUpperCase()
-                                        : 'M',
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.bold,
+                              Row(
+                                children: [
+                                  _buildNotificationBell(),
+                                  const SizedBox(width: 16),
+                                  InkWell(
+                                    onTap: () => Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) =>
+                                            const ProfileSettingsScreen(),
+                                      ),
+                                    ).then((_) => _fetchDashboardData()),
+                                    borderRadius: BorderRadius.circular(20),
+                                    child: CircleAvatar(
+                                      backgroundColor: const Color(0xFF00ACC1),
+                                      child: Text(
+                                        _userName.isNotEmpty
+                                            ? _userName[0].toUpperCase()
+                                            : 'M',
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
                                     ),
                                   ),
-                                ),
+                                ],
                               ),
                           ],
                         ),
                         const SizedBox(height: 40),
-
-                        // Üst İstatistik Kartları
                         LayoutBuilder(
                           builder: (context, constraints) {
                             double statCardWidth = isDesktop
                                 ? (constraints.maxWidth - 48) / 3
                                 : double.infinity;
-
                             return Wrap(
                               spacing: 24,
                               runSpacing: 24,
@@ -538,7 +674,6 @@ class _AnaEkranState extends State<AnaEkran> {
                           },
                         ),
                         const SizedBox(height: 40),
-
                         const Text(
                           'Hızlı İşlemler & Modüller',
                           style: TextStyle(
@@ -548,18 +683,15 @@ class _AnaEkranState extends State<AnaEkran> {
                           ),
                         ),
                         const SizedBox(height: 24),
-
                         LayoutBuilder(
                           builder: (context, constraints) {
                             double cardWidth;
-                            if (constraints.maxWidth > 1200) {
+                            if (constraints.maxWidth > 1200)
                               cardWidth = (constraints.maxWidth - 48) / 3;
-                            } else if (constraints.maxWidth > 800) {
+                            else if (constraints.maxWidth > 800)
                               cardWidth = (constraints.maxWidth - 24) / 2;
-                            } else {
+                            else
                               cardWidth = double.infinity;
-                            }
-
                             return Wrap(
                               spacing: 24,
                               runSpacing: 24,
@@ -576,7 +708,7 @@ class _AnaEkranState extends State<AnaEkran> {
                                       builder: (context) =>
                                           const ClientListScreen(),
                                     ),
-                                  ),
+                                  ).then((_) => _fetchDashboardData()),
                                 ),
                                 if (_userRole == 'admin')
                                   _buildActionCard(
@@ -591,7 +723,7 @@ class _AnaEkranState extends State<AnaEkran> {
                                         builder: (context) =>
                                             const TeamManagementScreen(),
                                       ),
-                                    ),
+                                    ).then((_) => _fetchDashboardData()),
                                   ),
                                 _buildActionCard(
                                   title: 'Toplu Tahakkuk',
@@ -613,7 +745,7 @@ class _AnaEkranState extends State<AnaEkran> {
                                       builder: (context) =>
                                           const OverduePaymentsScreen(),
                                     ),
-                                  ),
+                                  ).then((_) => _fetchDashboardData()),
                                 ),
                                 _buildActionCard(
                                   title: 'Kasa & Hareketler',
@@ -627,7 +759,7 @@ class _AnaEkranState extends State<AnaEkran> {
                                       builder: (context) =>
                                           const CashTransactionsScreen(),
                                     ),
-                                  ),
+                                  ).then((_) => _fetchDashboardData()),
                                 ),
                                 _buildActionCard(
                                   title: 'Dijital Evrak Arşivi',
@@ -641,14 +773,13 @@ class _AnaEkranState extends State<AnaEkran> {
                                       builder: (context) =>
                                           const DocumentArchiveScreen(),
                                     ),
-                                  ),
+                                  ).then((_) => _fetchDashboardData()),
                                 ),
                               ],
                             );
                           },
                         ),
                         const SizedBox(height: 40),
-
                         const Text(
                           'Son Finansal Hareketler',
                           style: TextStyle(
@@ -686,7 +817,6 @@ class _AnaEkranState extends State<AnaEkran> {
         ),
       );
     }
-
     return Container(
       decoration: BoxDecoration(
         color: const Color(0xFF1A1A20),
@@ -703,9 +833,9 @@ class _AnaEkranState extends State<AnaEkran> {
           final t = _recentTransactions[index];
           final isPaid = t['is_paid'] as bool? ?? false;
           final amount = double.tryParse(t['amount'].toString()) ?? 0.0;
-          final clientInfo = t['clients'] as Map<String, dynamic>?;
-          final clientTitle = clientInfo?['title'] ?? 'Bilinmeyen Mükellef';
-
+          final clientTitle =
+              (t['clients'] as Map<String, dynamic>?)?['title'] ??
+              'Bilinmeyen Mükellef';
           String dateText = '-';
           if (t['created_at'] != null) {
             try {
@@ -715,7 +845,6 @@ class _AnaEkranState extends State<AnaEkran> {
               ).format(DateTime.parse(t['created_at']));
             } catch (_) {}
           }
-
           return ListTile(
             contentPadding: const EdgeInsets.symmetric(
               horizontal: 24,
@@ -772,14 +901,14 @@ class _AnaEkranState extends State<AnaEkran> {
             child: Row(
               children: [
                 const Icon(
-                  Icons.account_balance,
+                  Icons.layers_rounded,
                   color: Color(0xFF00ACC1),
                   size: 32,
-                ),
+                ), // YENİ LOGO
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
-                    _companyName.isNotEmpty ? _companyName : 'HesapTakip',
+                    _companyName.isNotEmpty ? _companyName : 'Mükellef Takip',
                     style: const TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
@@ -787,7 +916,7 @@ class _AnaEkranState extends State<AnaEkran> {
                     ),
                     overflow: TextOverflow.ellipsis,
                   ),
-                ),
+                ), // YENİ İSİM
               ],
             ),
           ),
@@ -851,42 +980,38 @@ class _AnaEkranState extends State<AnaEkran> {
     return InkWell(
       onTap: () {
         setState(() => _selectedIndex = index);
-        if (MediaQuery.of(context).size.width <= 800) {
-          Navigator.pop(context);
-        }
-
-        if (index == 1) {
+        if (MediaQuery.of(context).size.width <= 800) Navigator.pop(context);
+        if (index == 1)
           Navigator.push(
             context,
             MaterialPageRoute(builder: (context) => const ClientListScreen()),
-          );
-        } else if (index == 2) {
+          ).then((_) => _fetchDashboardData());
+        else if (index == 2)
           Navigator.push(
             context,
             MaterialPageRoute(
               builder: (context) => const CashTransactionsScreen(),
             ),
-          );
-        } else if (index == 3) {
+          ).then((_) => _fetchDashboardData());
+        else if (index == 3)
           Navigator.push(
             context,
             MaterialPageRoute(
               builder: (context) => const TaskManagementScreen(),
             ),
-          );
-        } else if (index == 4) {
+          ).then((_) => _fetchDashboardData());
+        else if (index == 4)
           Navigator.push(
             context,
             MaterialPageRoute(builder: (context) => const ReportsScreen()),
-          );
-        } else if (index == 5) {
+          ).then((_) => _fetchDashboardData());
+        else if (index == 5)
           Navigator.push(
             context,
             MaterialPageRoute(
               builder: (context) => const CompanySettingsScreen(),
             ),
-          );
-        }
+          ).then((_) => _fetchDashboardData());
       },
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),

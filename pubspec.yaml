@@ -38,10 +38,11 @@ dependencies:
   intl: ^0.20.3
   pdf: ^3.13.1
   printing: ^5.15.1
-  file_picker: ^8.1.2
+  file_picker: ^10.3.3
   shared_preferences: ^2.5.6
   url_launcher: ^6.3.3
   fl_chart: ^1.2.0
+  path_provider: ^2.1.6
 
 dev_dependencies:
   flutter_test:

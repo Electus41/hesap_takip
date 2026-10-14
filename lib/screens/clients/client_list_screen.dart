@@ -71,7 +71,7 @@ class _ClientListScreenState extends State<ClientListScreen> {
           ],
         ),
         content: Text(
-          '${client['title']} mükellefini silmek üzeresiniz.\n\nBu mükellefe ait tüm finansal hareketler, yüklenen evraklar ve görevler de KALICI OLARAK SİLİNECEKTİR. Onaylıyor musunuz?',
+          '${client['title']} mükellefini silmek üzeresiniz.\n\nBu mükellefe ait tüm finansal hareketler ve görevler de KALICI OLARAK SİLİNECEKTİR. Onaylıyor musunuz?',
           style: const TextStyle(color: Colors.white70, height: 1.5),
         ),
         actions: [
@@ -83,7 +83,7 @@ class _ClientListScreenState extends State<ClientListScreen> {
             onPressed: () => Navigator.pop(context, true),
             style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent),
             child: const Text(
-              'Evet, Mükellefi Sil',
+              'Evet, Sil',
               style: TextStyle(color: Colors.white),
             ),
           ),
@@ -97,25 +97,62 @@ class _ClientListScreenState extends State<ClientListScreen> {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('Mükellef başarıyla silindi.'),
+              content: Text('Mükellef başarıyla sistemden silindi.'),
               backgroundColor: Colors.green,
             ),
           );
           _fetchClients();
         }
       } catch (e) {
-        if (mounted)
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Hata: $e'),
-              backgroundColor: Colors.redAccent,
-            ),
-          );
+        _showUserFriendlyError(e);
       }
     }
   }
 
-  // --- DETAYLI MÜKELLEF FORMU ---
+  // --- KULLANICI DOSTU HATA YÖNETİMİ (İNGİLİZCE KODLARI TÜRKÇEYE ÇEVİRİR) ---
+  void _showUserFriendlyError(dynamic error) {
+    if (!mounted) return;
+
+    String errorMessage =
+        'İşleminiz şu anda gerçekleştirilemiyor. Lütfen internet bağlantınızı kontrol edip tekrar deneyin.';
+
+    if (error is PostgrestException) {
+      if (error.code == 'PGRST204' || error.message.contains('schema cache')) {
+        errorMessage =
+            'Arka planda sistem güncellemesi yapılıyor. Lütfen sayfayı yenileyin veya 1 dakika sonra tekrar deneyin.';
+      } else if (error.code == '23505') {
+        errorMessage =
+            'Uyarı: Girdiğiniz bilgilere sahip bir mükellef zaten sistemde kayıtlı!';
+      } else if (error.message.contains('foreign key')) {
+        errorMessage =
+            'Bu mükellefe bağlı aktif işlemler olduğu için silinemiyor.';
+      } else {
+        errorMessage =
+            'Sunucuyla iletişim kurulurken sistemsel bir hata oluştu. Sorun devam ederse teknik desteğe başvurun.';
+      }
+    }
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            const Icon(Icons.error_outline, color: Colors.white),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                errorMessage,
+                style: const TextStyle(color: Colors.white),
+              ),
+            ),
+          ],
+        ),
+        backgroundColor: Colors.orange[800],
+        behavior: SnackBarBehavior.floating,
+        duration: const Duration(seconds: 5),
+      ),
+    );
+  }
+
   void _showClientForm([Map<String, dynamic>? existingClient]) {
     final isEdit = existingClient != null;
 
@@ -123,25 +160,25 @@ class _ClientListScreenState extends State<ClientListScreen> {
       text: isEdit ? existingClient['title'] : '',
     );
     final contactController = TextEditingController(
-      text: isEdit ? existingClient['contact_name'] : '',
+      text: isEdit ? (existingClient['contact_name'] ?? '') : '',
     );
     final taxNoController = TextEditingController(
-      text: isEdit ? existingClient['tax_number'] : '',
+      text: isEdit ? (existingClient['tax_number'] ?? '') : '',
     );
     final taxOfficeController = TextEditingController(
-      text: isEdit ? existingClient['tax_office'] : '',
+      text: isEdit ? (existingClient['tax_office'] ?? '') : '',
     );
     final phoneController = TextEditingController(
-      text: isEdit ? existingClient['phone'] : '',
+      text: isEdit ? (existingClient['phone'] ?? '') : '',
     );
     final emailController = TextEditingController(
-      text: isEdit ? existingClient['email'] : '',
+      text: isEdit ? (existingClient['email'] ?? '') : '',
     );
     final addressController = TextEditingController(
-      text: isEdit ? existingClient['address'] : '',
+      text: isEdit ? (existingClient['address'] ?? '') : '',
     );
     final notesController = TextEditingController(
-      text: isEdit ? existingClient['notes'] : '',
+      text: isEdit ? (existingClient['notes'] ?? '') : '',
     );
 
     bool isProcessing = false;
@@ -174,7 +211,7 @@ class _ClientListScreenState extends State<ClientListScreen> {
                   )
                 : SingleChildScrollView(
                     child: SizedBox(
-                      width: 600, // Formu daha geniş ve ferah yaptık
+                      width: 600,
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
@@ -273,6 +310,7 @@ class _ClientListScreenState extends State<ClientListScreen> {
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(
                               content: Text('Lütfen firma unvanını girin.'),
+                              backgroundColor: Colors.orange,
                             ),
                           );
                           return;
@@ -310,7 +348,7 @@ class _ClientListScreenState extends State<ClientListScreen> {
                                 content: Text(
                                   isEdit
                                       ? 'Mükellef güncellendi.'
-                                      : 'Yeni mükellef eklendi.',
+                                      : 'Yeni mükellef sisteme eklendi.',
                                 ),
                                 backgroundColor: Colors.green,
                               ),
@@ -318,13 +356,9 @@ class _ClientListScreenState extends State<ClientListScreen> {
                           }
                         } catch (e) {
                           setDialogState(() => isProcessing = false);
-                          if (mounted)
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text('Hata: $e'),
-                                backgroundColor: Colors.redAccent,
-                              ),
-                            );
+                          _showUserFriendlyError(
+                            e,
+                          ); // Yeni akıllı hata göstericiyi çağırdık
                         }
                       },
                       style: ElevatedButton.styleFrom(
@@ -399,7 +433,6 @@ class _ClientListScreenState extends State<ClientListScreen> {
               itemCount: _clients.length,
               itemBuilder: (context, index) {
                 final client = _clients[index];
-
                 return Container(
                   margin: const EdgeInsets.only(bottom: 12),
                   decoration: BoxDecoration(
@@ -434,29 +467,26 @@ class _ClientListScreenState extends State<ClientListScreen> {
                     subtitle: Padding(
                       padding: const EdgeInsets.only(top: 4.0),
                       child: Text(
-                        'Yetkili: ${client['contact_name'] ?? '-'} • Telefon: ${client['phone'] ?? '-'}',
+                        'Yetkili: ${client['contact_name'] == null || client['contact_name'].isEmpty ? '-' : client['contact_name']} • V.No: ${client['tax_number'] == null || client['tax_number'].isEmpty ? '-' : client['tax_number']}',
                         style: const TextStyle(
                           color: Colors.white54,
                           fontSize: 13,
                         ),
                       ),
                     ),
-                    // Satıra tıklanınca PDF ve Hesap Hareketleri ekranı açılır
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) =>
-                              ClientDetailScreen(client: client),
-                        ),
-                      );
-                    },
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) =>
+                            ClientDetailScreen(client: client),
+                      ),
+                    ),
                     trailing: PopupMenuButton<String>(
                       icon: const Icon(Icons.more_vert, color: Colors.white54),
                       color: const Color(0xFF222222),
                       onSelected: (value) {
                         if (value == 'edit')
-                          _showClientForm(client); // Formu DOLU açar
+                          _showClientForm(client);
                         else if (value == 'delete')
                           _deleteClient(client);
                       },
@@ -498,7 +528,7 @@ class _ClientListScreenState extends State<ClientListScreen> {
               },
             ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _showClientForm(), // Formu BOŞ açar
+        onPressed: () => _showClientForm(),
         backgroundColor: const Color(0xFF00ACC1),
         icon: const Icon(Icons.add, color: Colors.white),
         label: const Text(
