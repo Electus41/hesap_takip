@@ -75,4 +75,8 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: HesapTakip-IPA
+<<<<<<< HEAD
           path: build/ios/iphoneos/HesapTakip.ipa
+=======
+          path: build/ios/iphoneos/HesapTakip.ipa
+>>>>>>> a7078d24f828e68fcba110c73f8e318ffe86e51e
