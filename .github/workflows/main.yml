@@ -22,7 +22,6 @@ jobs:
         run: flutter pub get
 
       - name: Web İçin Derle
-        # NOT: Eğer GitHub reponun adı farklıysa "hesap_takip" kısmını ona göre değiştir.
         run: flutter build web --release --base-href "/hesap_takip/"
 
       - name: Web Sürümünü GitHub Pages'e Yükle
@@ -41,7 +40,7 @@ jobs:
           path: build/app/outputs/flutter-apk/app-release.apk
 
   build-ios:
-    name: iOS Derlemesi (Mac Sunucusu)
+    name: iOS Derlemesi ve IPA Üretimi
     runs-on: macos-latest
     steps:
       - name: Kodu Çek
@@ -58,8 +57,16 @@ jobs:
       - name: iOS İçin Derle (Sertifikasız)
         run: flutter build ios --release --no-codesign
 
-      - name: iOS Dosyasını Kaydet (Artifact)
+      - name: IPA Dosyasını Paketle
+        run: |
+          cd build/ios/iphoneos
+          mkdir Payload
+          mv Runner.app Payload/
+          zip -r HesapTakip.ipa Payload
+          cd ../../..
+
+      - name: IPA Dosyasını Kaydet (Artifact)
         uses: actions/upload-artifact@v4
         with:
-          name: HesapTakip-iOS
-          path: build/ios/iphoneos/Runner.app
+          name: HesapTakip-IPA
+          path: build/ios/iphoneos/HesapTakip.ipa
