@@ -888,9 +888,6 @@ class _AnaEkranState extends State<AnaEkran> {
     );
   }
 
-  // ===========================================================================
-  // 2. WEB / MASAÜSTÜ GÖRÜNÜM (MEVCUT GENİŞ KARTLI SAAS TASARIMI)
-  // ===========================================================================
   Widget _buildDesktopDashboard(NumberFormat currencyFormatter) {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(32.0),
