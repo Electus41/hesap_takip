@@ -41,6 +41,99 @@ class _AnaEkranState extends State<AnaEkran> {
     _fetchDashboardData();
   }
 
+  // ===========================================================================
+  // OTOMATİK AYLIK VE YILLIK TAHAKKUK ÜRETİCİ MOTOR
+  // ===========================================================================
+  Future<void> _checkAndGenerateRecurringTransactions(
+    List<String> activeClientIds,
+    List<Map<String, dynamic>> allTransactions,
+  ) async {
+    if (activeClientIds.isEmpty || allTransactions.isEmpty) return;
+
+    final now = DateTime.now();
+    final currentMonthKey = DateFormat('yyyy-MM').format(now);
+    final currentYearKey = DateFormat('yyyy').format(now);
+    final monthName = DateFormat('MMMM yyyy', 'tr_TR').format(now);
+
+    // Mükellef bazında tanımlanmış Aylık veya Yıllık şablonları buluyoruz
+    final Map<String, Map<String, dynamic>> recurringTemplates = {};
+
+    for (var t in allTransactions) {
+      final freq = t['frequency']?.toString() ?? 'one_time';
+      if (freq == 'monthly' || freq == 'yearly') {
+        final clientId = t['client_id'].toString();
+        if (!activeClientIds.contains(clientId)) continue;
+
+        // Hizmetin saf adını ayıklıyoruz (Örn: "Danışmanlık Hizmeti • Ekim 2026" -> "Danışmanlık Hizmeti")
+        final rawDesc = (t['description'] ?? 'Hizmet Bedeli').toString();
+        final baseDesc = rawDesc.split(' • ').first.trim();
+        final templateKey = '${clientId}_${baseDesc}_$freq';
+
+        if (!recurringTemplates.containsKey(templateKey)) {
+          recurringTemplates[templateKey] = {
+            'client_id': clientId,
+            'base_desc': baseDesc,
+            'amount': double.tryParse(t['amount'].toString()) ?? 0.0,
+            'payment_type_id': t['payment_type_id'],
+            'frequency': freq,
+          };
+        }
+      }
+    }
+
+    if (recurringTemplates.isEmpty) return;
+
+    final List<Map<String, dynamic>> newInserts = [];
+
+    for (var entry in recurringTemplates.entries) {
+      final tmpl = entry.value;
+      final clientId = tmpl['client_id'];
+      final baseDesc = tmpl['base_desc'];
+      final freq = tmpl['frequency'];
+      final targetPeriodKey = freq == 'monthly'
+          ? currentMonthKey
+          : currentYearKey;
+
+      // Bu mükellef için bu ayın (veya yılın) tahakkuku zaten var mı kontrol et
+      final alreadyExists = allTransactions.any((t) {
+        if (t['client_id'].toString() != clientId) return false;
+        final tDesc = (t['description'] ?? '').toString();
+        final tBaseDesc = tDesc.split(' • ').first.trim();
+        if (tBaseDesc != baseDesc) return false;
+
+        final pKey = t['period_key']?.toString();
+        if (pKey == targetPeriodKey) return true;
+
+        // Eğer eski kayıtta period_key yoksa due_date veya created_at ayına bak
+        final dateStr = (t['due_date'] ?? t['created_at'] ?? '').toString();
+        if (dateStr.startsWith(targetPeriodKey)) return true;
+
+        return false;
+      });
+
+      if (!alreadyExists) {
+        final periodLabel = freq == 'monthly' ? monthName : '${now.year} Yılı';
+        newInserts.add({
+          'company_id': _companyId,
+          'client_id': clientId,
+          'payment_type_id': tmpl['payment_type_id'],
+          'description': '$baseDesc • $periodLabel',
+          'amount': tmpl['amount'],
+          'is_paid': false,
+          'due_date': now.toIso8601String().split('T')[0],
+          'frequency': freq,
+          'period_key': targetPeriodKey,
+        });
+      }
+    }
+
+    if (newInserts.isNotEmpty) {
+      try {
+        await supabase.from('transactions').insert(newInserts);
+      } catch (_) {}
+    }
+  }
+
   Future<void> _fetchDashboardData() async {
     try {
       final user = supabase.auth.currentUser;
@@ -59,6 +152,7 @@ class _AnaEkranState extends State<AnaEkran> {
           .select('full_name, role, company_id, companies(name)')
           .eq('id', user.id)
           .single();
+
       _userName = profileData['full_name'] ?? 'Kullanıcı';
       _userRole = profileData['role'] ?? 'personel';
       _companyId = profileData['company_id'];
@@ -67,14 +161,45 @@ class _AnaEkranState extends State<AnaEkran> {
           ? companyInfo['name']
           : 'Mükellef Takip';
 
+      // Şirketin mükelleflerini çekiyoruz
       final clientsData = await supabase
           .from('clients')
-          .select('id')
+          .select('id, title, is_active')
           .eq('company_id', _companyId);
-      final transactionsData = await supabase
-          .from('transactions')
-          .select('amount, is_paid, due_date, description, clients(title)')
-          .eq('company_id', _companyId);
+
+      final Map<String, String> clientNames = {};
+      final List<String> activeClientIds = [];
+      for (var c in clientsData) {
+        final cId = c['id'].toString();
+        clientNames[cId] = (c['title'] ?? 'Bilinmeyen Mükellef').toString();
+        if (c['is_active'] != false) {
+          activeClientIds.add(cId);
+        }
+      }
+
+      List<Map<String, dynamic>> transactionsData = [];
+      if (clientNames.isNotEmpty) {
+        final txRes = await supabase
+            .from('transactions')
+            .select()
+            .inFilter('client_id', clientNames.keys.toList())
+            .order('created_at', ascending: false);
+        transactionsData = List<Map<String, dynamic>>.from(txRes);
+
+        // Otomatik Aylık / Yıllık tahakkuk kontrolünü çalıştır
+        await _checkAndGenerateRecurringTransactions(
+          activeClientIds,
+          transactionsData,
+        );
+
+        // Yeni otomatik tahakkuk eklendiyse güncel listeyi tekrar çek
+        final updatedTxRes = await supabase
+            .from('transactions')
+            .select()
+            .inFilter('client_id', clientNames.keys.toList())
+            .order('created_at', ascending: false);
+        transactionsData = List<Map<String, dynamic>>.from(updatedTxRes);
+      }
 
       double bekleyen = 0.0;
       double gelir = 0.0;
@@ -84,40 +209,45 @@ class _AnaEkranState extends State<AnaEkran> {
 
       for (var t in transactionsData) {
         final amount = double.tryParse(t['amount'].toString()) ?? 0.0;
-        final isPaid = t['is_paid'] as bool? ?? false;
+        final isPaid = t['is_paid'] == true;
+        final cTitle = clientNames[t['client_id'].toString()] ?? 'Mükellef';
+
         if (isPaid) {
           gelir += amount;
         } else {
+          // Ödenmemiş tüm işlemleri kuruşu kuruşuna Geciken Ödemeler ekranı ile aynı toplar
           bekleyen += amount;
+
           if (t['due_date'] != null) {
-            final dueDate = DateTime.parse(t['due_date'].toString());
-            if (dueDate.isBefore(limitDate)) {
-              newAlerts.add({
-                'amount': amount,
-                'description': t['description'] ?? 'Belirtilmemiş İşlem',
-                'due_date': dueDate,
-                'client': t['clients'] != null
-                    ? t['clients']['title']
-                    : 'Bilinmeyen Mükellef',
-                'is_overdue': dueDate.isBefore(
-                  DateTime(today.year, today.month, today.day),
-                ),
-              });
-            }
+            try {
+              final dueDate = DateTime.parse(t['due_date'].toString());
+              if (dueDate.isBefore(limitDate)) {
+                newAlerts.add({
+                  'amount': amount,
+                  'description': t['description'] ?? 'Belirtilmemiş İşlem',
+                  'due_date': dueDate,
+                  'client': cTitle,
+                  'is_overdue': dueDate.isBefore(
+                    DateTime(today.year, today.month, today.day),
+                  ),
+                });
+              }
+            } catch (_) {}
           }
         }
       }
+
       newAlerts.sort(
         (a, b) =>
             (a['due_date'] as DateTime).compareTo(b['due_date'] as DateTime),
       );
 
-      final recentTxData = await supabase
-          .from('transactions')
-          .select('amount, is_paid, description, created_at, clients(title)')
-          .eq('company_id', _companyId)
-          .order('created_at', ascending: false)
-          .limit(5);
+      final recentFive = transactionsData.take(5).map((t) {
+        return {
+          ...t,
+          'client_title': clientNames[t['client_id'].toString()] ?? 'Mükellef',
+        };
+      }).toList();
 
       if (mounted) {
         setState(() {
@@ -125,7 +255,7 @@ class _AnaEkranState extends State<AnaEkran> {
           _bekleyenTahsilat = bekleyen;
           _toplamGelir = gelir;
           _alerts = newAlerts;
-          _recentTransactions = List<Map<String, dynamic>>.from(recentTxData);
+          _recentTransactions = recentFive;
           _isLoading = false;
         });
       }
@@ -248,6 +378,9 @@ class _AnaEkranState extends State<AnaEkran> {
     );
   }
 
+  // ===========================================================================
+  // PERİYOT SEÇİMLİ (AYLIK / YILLIK / 1 DEFALIK) TOPLU TAHAKKUK PENCERESİ
+  // ===========================================================================
   Future<void> _showTopluTahakkukDialog() async {
     final paymentTypesRes = await supabase
         .from('payment_types')
@@ -261,17 +394,20 @@ class _AnaEkranState extends State<AnaEkran> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text(
-              'Lütfen önce Şirket Ayarları\'ndan bir ödeme kalemi ekleyin.',
+              'Lütfen önce Şirket Ayarları\'ndan bir ödeme/hizmet kalemi ekleyin.',
             ),
+            backgroundColor: Colors.orange,
           ),
         );
       }
       return;
     }
-    final descController = TextEditingController();
+
     final amountController = TextEditingController();
+    final customNoteController = TextEditingController();
     String? selectedPaymentTypeId;
     String? selectedPaymentTypeName;
+    String selectedFrequency = 'monthly'; // Varsayılan: Aylık Düzenli
     bool isProcessing = false;
 
     if (!mounted) return;
@@ -295,10 +431,11 @@ class _AnaEkranState extends State<AnaEkran> {
                 borderRadius: BorderRadius.circular(16),
               ),
               title: const Text(
-                'Toplu Tahakkuk İşlemi',
+                'Toplu Tahakkuk / Hizmet Tanımla',
                 style: TextStyle(
                   color: Colors.white,
                   fontWeight: FontWeight.bold,
+                  fontSize: 18,
                 ),
               ),
               content: isProcessing
@@ -311,7 +448,7 @@ class _AnaEkranState extends State<AnaEkran> {
                             CircularProgressIndicator(color: Color(0xFF00ACC1)),
                             SizedBox(height: 16),
                             Text(
-                              'Borç yansıtılıyor...',
+                              'Tahakkuk işlemi uygulanıyor...',
                               style: TextStyle(color: Colors.white54),
                             ),
                           ],
@@ -320,16 +457,17 @@ class _AnaEkranState extends State<AnaEkran> {
                     )
                   : SingleChildScrollView(
                       child: SizedBox(
-                        width: isMobile ? screenWidth : 400,
+                        width: isMobile ? screenWidth : 440,
                         child: Column(
                           mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             DropdownButtonFormField<String>(
                               isExpanded: true,
                               dropdownColor: const Color(0xFF222222),
                               style: const TextStyle(color: Colors.white),
                               decoration: InputDecoration(
-                                labelText: 'Ödeme Kalemi',
+                                labelText: 'Hizmet / Ödeme Kalemi Seçin',
                                 labelStyle: const TextStyle(
                                   color: Colors.white54,
                                 ),
@@ -356,14 +494,66 @@ class _AnaEkranState extends State<AnaEkran> {
                                     )['name'];
                               }),
                             ),
-                            const SizedBox(height: 16),
-                            TextField(
-                              controller: descController,
+                            const SizedBox(height: 14),
+                            DropdownButtonFormField<String>(
+                              value: selectedFrequency,
+                              isExpanded: true,
+                              dropdownColor: const Color(0xFF222222),
                               style: const TextStyle(color: Colors.white),
                               decoration: InputDecoration(
-                                labelText: 'Dönem / Açıklama (Örn: Ekim Ayı)',
+                                labelText: 'Tekrar Sıklığı (Periyot)',
                                 labelStyle: const TextStyle(
                                   color: Colors.white54,
+                                ),
+                                prefixIcon: const Icon(
+                                  Icons.repeat,
+                                  color: Color(0xFF00ACC1),
+                                ),
+                                filled: true,
+                                fillColor: const Color(0xFF101014),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                  borderSide: BorderSide.none,
+                                ),
+                              ),
+                              items: const [
+                                DropdownMenuItem(
+                                  value: 'monthly',
+                                  child: Text('Aylık (Her Ay Otomatik Yansır)'),
+                                ),
+                                DropdownMenuItem(
+                                  value: 'yearly',
+                                  child: Text(
+                                    'Yıllık (Her Yıl Otomatik Yansır)',
+                                  ),
+                                ),
+                                DropdownMenuItem(
+                                  value: 'one_time',
+                                  child: Text('1 Defalık (Tek Seferlik İşlem)'),
+                                ),
+                              ],
+                              onChanged: (val) {
+                                if (val != null) {
+                                  setDialogState(() => selectedFrequency = val);
+                                }
+                              },
+                            ),
+                            const SizedBox(height: 14),
+                            TextField(
+                              controller: amountController,
+                              keyboardType:
+                                  const TextInputType.numberWithOptions(
+                                    decimal: true,
+                                  ),
+                              style: const TextStyle(color: Colors.white),
+                              decoration: InputDecoration(
+                                labelText: 'Tutar (₺) - Örn: 1000',
+                                labelStyle: const TextStyle(
+                                  color: Colors.white54,
+                                ),
+                                prefixIcon: const Icon(
+                                  Icons.currency_lira,
+                                  color: Colors.white38,
                                 ),
                                 filled: true,
                                 fillColor: const Color(0xFF101014),
@@ -373,24 +563,44 @@ class _AnaEkranState extends State<AnaEkran> {
                                 ),
                               ),
                             ),
-                            const SizedBox(height: 16),
+                            const SizedBox(height: 14),
                             TextField(
-                              controller: amountController,
-                              keyboardType:
-                                  const TextInputType.numberWithOptions(
-                                    decimal: true,
-                                  ),
+                              controller: customNoteController,
                               style: const TextStyle(color: Colors.white),
                               decoration: InputDecoration(
-                                labelText: 'Tutar (₺)',
+                                labelText:
+                                    'Ek Not (İsteğe Bağlı - Boş Bırakılabilir)',
                                 labelStyle: const TextStyle(
                                   color: Colors.white54,
+                                  fontSize: 13,
                                 ),
                                 filled: true,
                                 fillColor: const Color(0xFF101014),
                                 border: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(12),
                                   borderSide: BorderSide.none,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            Container(
+                              padding: const EdgeInsets.all(10),
+                              decoration: BoxDecoration(
+                                color: const Color(
+                                  0xFF00ACC1,
+                                ).withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Text(
+                                selectedFrequency == 'monthly'
+                                    ? '💡 Aylık seçildi: Bu işlem her ay için ayrı ayrı girmenize gerek kalmadan her ay otomatik olarak mükelleflere yansıtılır.'
+                                    : selectedFrequency == 'yearly'
+                                    ? '💡 Yıllık seçildi: Bu işlem yılda bir kez otomatik olarak mükelleflere yansıtılır.'
+                                    : '💡 1 Defalık seçildi: Sadece tek seferlik borç yansıtılır, gelecek aylarda tekrarlamaz.',
+                                style: const TextStyle(
+                                  color: Colors.white70,
+                                  fontSize: 11,
+                                  height: 1.3,
                                 ),
                               ),
                             ),
@@ -412,6 +622,14 @@ class _AnaEkranState extends State<AnaEkran> {
                         onPressed: () async {
                           if (selectedPaymentTypeId == null ||
                               amountController.text.isEmpty) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text(
+                                  'Lütfen kalem seçin ve tutar girin.',
+                                ),
+                                backgroundColor: Colors.orange,
+                              ),
+                            );
                             return;
                           }
                           setDialogState(() => isProcessing = true);
@@ -419,19 +637,40 @@ class _AnaEkranState extends State<AnaEkran> {
                             final clientsRes = await supabase
                                 .from('clients')
                                 .select('id')
-                                .eq('company_id', _companyId)
-                                .eq('is_active', true);
+                                .eq('company_id', _companyId);
+
                             final amount =
                                 double.tryParse(
                                   amountController.text.replaceAll(',', '.'),
                                 ) ??
                                 0.0;
-                            final finalDesc = descController.text.trim().isEmpty
+
+                            final now = DateTime.now();
+                            final periodLabel = selectedFrequency == 'monthly'
+                                ? DateFormat('MMMM yyyy', 'tr_TR').format(now)
+                                : selectedFrequency == 'yearly'
+                                ? '${now.year} Yılı'
+                                : DateFormat('dd.MM.yyyy').format(now);
+
+                            final periodKey = selectedFrequency == 'monthly'
+                                ? DateFormat('yyyy-MM').format(now)
+                                : selectedFrequency == 'yearly'
+                                ? DateFormat('yyyy').format(now)
+                                : 'ONCE_${now.millisecondsSinceEpoch}';
+
+                            final baseTitle =
+                                customNoteController.text.trim().isEmpty
                                 ? selectedPaymentTypeName!
-                                : '$selectedPaymentTypeName - ${descController.text.trim()}';
-                            final today = DateTime.now()
-                                .toIso8601String()
-                                .split('T')[0];
+                                : '$selectedPaymentTypeName (${customNoteController.text.trim()})';
+
+                            final finalDesc = selectedFrequency == 'one_time'
+                                ? baseTitle
+                                : '$baseTitle • $periodLabel';
+
+                            final todayStr = now.toIso8601String().split(
+                              'T',
+                            )[0];
+
                             final List<Map<String, dynamic>> batchInserts =
                                 List<Map<String, dynamic>>.from(clientsRes)
                                     .map(
@@ -443,10 +682,13 @@ class _AnaEkranState extends State<AnaEkran> {
                                         'description': finalDesc,
                                         'amount': amount,
                                         'is_paid': false,
-                                        'due_date': today,
+                                        'due_date': todayStr,
+                                        'frequency': selectedFrequency,
+                                        'period_key': periodKey,
                                       },
                                     )
                                     .toList();
+
                             if (batchInserts.isNotEmpty) {
                               await supabase
                                   .from('transactions')
@@ -459,7 +701,7 @@ class _AnaEkranState extends State<AnaEkran> {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
                                   content: Text(
-                                    '${clientsRes.length} mükellefe başarıyla borç yansıtıldı!',
+                                    '${clientsRes.length} mükellefe tahakkuk başarıyla tanımlandı!',
                                   ),
                                   backgroundColor: Colors.green,
                                 ),
@@ -469,10 +711,8 @@ class _AnaEkranState extends State<AnaEkran> {
                             setDialogState(() => isProcessing = false);
                             if (mounted) {
                               ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text(
-                                    'Sistemsel hata, lütfen tekrar deneyin.',
-                                  ),
+                                SnackBar(
+                                  content: Text('Hata: $e'),
                                   backgroundColor: Colors.redAccent,
                                 ),
                               );
@@ -483,7 +723,7 @@ class _AnaEkranState extends State<AnaEkran> {
                           backgroundColor: const Color(0xFF00ACC1),
                         ),
                         child: const Text(
-                          'Tahakkuk Et',
+                          'Tahakkuk Tanımla',
                           style: TextStyle(
                             color: Colors.white,
                             fontWeight: FontWeight.bold,
@@ -610,7 +850,6 @@ class _AnaEkranState extends State<AnaEkran> {
                 ? const Center(
                     child: CircularProgressIndicator(color: Color(0xFF00ACC1)),
                   )
-                // EKRAN GENİŞLİĞİNE GÖRE WEB VEYA MOBİL TASARIMI ÇAĞIRIYORUZ
                 : isDesktop
                 ? _buildDesktopDashboard(currencyFormatter)
                 : _buildMobileStockStyleDashboard(currencyFormatter),
@@ -620,16 +859,12 @@ class _AnaEkranState extends State<AnaEkran> {
     );
   }
 
-  // ===========================================================================
-  // 1. MOBİL GÖRÜNÜM (STOK UYGULAMASI TARZI KOMPAKT BANNER & İNCE MENÜ SATIRLARI)
-  // ===========================================================================
   Widget _buildMobileStockStyleDashboard(NumberFormat currencyFormatter) {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // ÜST ÖZET BANNER (Stok uygulamasındaki mavi/mor geçişli özet kutusu)
           Container(
             width: double.infinity,
             padding: const EdgeInsets.symmetric(vertical: 22, horizontal: 16),
@@ -667,7 +902,6 @@ class _AnaEkranState extends State<AnaEkran> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
-                    // 1. Mükellef Sayısı
                     Expanded(
                       child: Column(
                         children: [
@@ -691,7 +925,6 @@ class _AnaEkranState extends State<AnaEkran> {
                       ),
                     ),
                     Container(width: 1, height: 36, color: Colors.white24),
-                    // 2. Bekleyen Tahsilat
                     Expanded(
                       child: Column(
                         children: [
@@ -716,7 +949,6 @@ class _AnaEkranState extends State<AnaEkran> {
                       ),
                     ),
                     Container(width: 1, height: 36, color: Colors.white24),
-                    // 3. Toplam Kasa
                     Expanded(
                       child: Column(
                         children: [
@@ -746,27 +978,35 @@ class _AnaEkranState extends State<AnaEkran> {
             ),
           ),
           const SizedBox(height: 18),
-
-          // ALT ALTA İNCE KOMPAKT MENÜ SATIRLARI (Stok Uygulaması Stili)
           _buildCompactMenuRow(
             title: 'Mükellef Yönetimi',
             icon: Icons.group_add,
             iconColor: Colors.greenAccent,
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => const ClientListScreen()),
-            ).then((_) => _fetchDashboardData()),
+            onTap: () =>
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const ClientListScreen(),
+                  ),
+                ).then((_) {
+                  if (mounted) setState(() => _selectedIndex = 0);
+                  _fetchDashboardData();
+                }),
           ),
           _buildCompactMenuRow(
             title: 'Görev & İş Takibi (Kanban)',
             icon: Icons.assignment_turned_in,
             iconColor: Colors.blueAccent,
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => const TaskManagementScreen(),
-              ),
-            ).then((_) => _fetchDashboardData()),
+            onTap: () =>
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const TaskManagementScreen(),
+                  ),
+                ).then((_) {
+                  if (mounted) setState(() => _selectedIndex = 0);
+                  _fetchDashboardData();
+                }),
           ),
           _buildCompactMenuRow(
             title: 'Toplu Tahakkuk (Borç Yansıt)',
@@ -778,57 +1018,78 @@ class _AnaEkranState extends State<AnaEkran> {
             title: 'Kasa & Gün Sonu Hareketleri',
             icon: Icons.point_of_sale,
             iconColor: Colors.amberAccent,
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => const CashTransactionsScreen(),
-              ),
-            ).then((_) => _fetchDashboardData()),
+            onTap: () =>
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const CashTransactionsScreen(),
+                  ),
+                ).then((_) {
+                  if (mounted) setState(() => _selectedIndex = 0);
+                  _fetchDashboardData();
+                }),
           ),
           _buildCompactMenuRow(
             title: 'Geciken Ödemeler & Ekstre',
             icon: Icons.warning_amber_rounded,
             iconColor: Colors.redAccent,
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => const OverduePaymentsScreen(),
-              ),
-            ).then((_) => _fetchDashboardData()),
+            onTap: () =>
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const OverduePaymentsScreen(),
+                  ),
+                ).then((_) {
+                  if (mounted) setState(() => _selectedIndex = 0);
+                  _fetchDashboardData();
+                }),
           ),
           _buildCompactMenuRow(
             title: 'Dijital Evrak Arşivi',
             icon: Icons.folder_shared,
             iconColor: const Color(0xFF00ACC1),
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => const DocumentArchiveScreen(),
-              ),
-            ).then((_) => _fetchDashboardData()),
+            onTap: () =>
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const DocumentArchiveScreen(),
+                  ),
+                ).then((_) {
+                  if (mounted) setState(() => _selectedIndex = 0);
+                  _fetchDashboardData();
+                }),
           ),
           _buildCompactMenuRow(
             title: 'Finansal Analiz & PDF Raporu',
             icon: Icons.picture_as_pdf,
             iconColor: Colors.deepOrangeAccent,
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => const ReportsScreen()),
-            ).then((_) => _fetchDashboardData()),
+            onTap: () =>
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const ReportsScreen(),
+                  ),
+                ).then((_) {
+                  if (mounted) setState(() => _selectedIndex = 0);
+                  _fetchDashboardData();
+                }),
           ),
           if (_userRole == 'admin')
             _buildCompactMenuRow(
               title: 'Ekip Yönetimi (Personeller)',
               icon: Icons.admin_panel_settings,
               iconColor: Colors.indigoAccent,
-              onTap: () => Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const TeamManagementScreen(),
-                ),
-              ).then((_) => _fetchDashboardData()),
+              onTap: () =>
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const TeamManagementScreen(),
+                    ),
+                  ).then((_) {
+                    if (mounted) setState(() => _selectedIndex = 0);
+                    _fetchDashboardData();
+                  }),
             ),
-
           const SizedBox(height: 24),
           const Text(
             'Son Finansal Hareketler',
@@ -846,7 +1107,6 @@ class _AnaEkranState extends State<AnaEkran> {
     );
   }
 
-  // STOK UYGULAMASINDAKİ İNCE ŞIK SATIR TASARIMI
   Widget _buildCompactMenuRow({
     required String title,
     required IconData icon,
@@ -952,12 +1212,16 @@ class _AnaEkranState extends State<AnaEkran> {
                   _buildNotificationBell(),
                   const SizedBox(width: 16),
                   InkWell(
-                    onTap: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const ProfileSettingsScreen(),
-                      ),
-                    ).then((_) => _fetchDashboardData()),
+                    onTap: () =>
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const ProfileSettingsScreen(),
+                          ),
+                        ).then((_) {
+                          if (mounted) setState(() => _selectedIndex = 0);
+                          _fetchDashboardData();
+                        }),
                     borderRadius: BorderRadius.circular(20),
                     child: CircleAvatar(
                       backgroundColor: const Color(0xFF00ACC1),
@@ -1036,12 +1300,16 @@ class _AnaEkranState extends State<AnaEkran> {
                         'Yeni mükellef ekle veya mevcut profilleri düzenle.',
                     icon: Icons.group_add,
                     width: cardWidth,
-                    onTap: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const ClientListScreen(),
-                      ),
-                    ).then((_) => _fetchDashboardData()),
+                    onTap: () =>
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const ClientListScreen(),
+                          ),
+                        ).then((_) {
+                          if (mounted) setState(() => _selectedIndex = 0);
+                          _fetchDashboardData();
+                        }),
                   ),
                   if (_userRole == 'admin')
                     _buildActionCard(
@@ -1049,16 +1317,22 @@ class _AnaEkranState extends State<AnaEkran> {
                       description: 'Ofisinize yeni personel ekleyin.',
                       icon: Icons.admin_panel_settings,
                       width: cardWidth,
-                      onTap: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const TeamManagementScreen(),
-                        ),
-                      ).then((_) => _fetchDashboardData()),
+                      onTap: () =>
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) =>
+                                  const TeamManagementScreen(),
+                            ),
+                          ).then((_) {
+                            if (mounted) setState(() => _selectedIndex = 0);
+                            _fetchDashboardData();
+                          }),
                     ),
                   _buildActionCard(
                     title: 'Toplu Tahakkuk',
-                    description: 'Tüm mükelleflere tek tuşla borç yansıt.',
+                    description:
+                        'Tüm mükelleflere periyodik veya tek seferlik borç yansıt.',
                     icon: Icons.receipt_long,
                     width: cardWidth,
                     onTap: _showTopluTahakkukDialog,
@@ -1069,24 +1343,33 @@ class _AnaEkranState extends State<AnaEkran> {
                         'Vadesi geçmiş alacakları görüntüle ve ekstre al.',
                     icon: Icons.warning_amber_rounded,
                     width: cardWidth,
-                    onTap: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const OverduePaymentsScreen(),
-                      ),
-                    ).then((_) => _fetchDashboardData()),
+                    onTap: () =>
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const OverduePaymentsScreen(),
+                          ),
+                        ).then((_) {
+                          if (mounted) setState(() => _selectedIndex = 0);
+                          _fetchDashboardData();
+                        }),
                   ),
                   _buildActionCard(
                     title: 'Kasa & Hareketler',
                     description: 'Tüm nakit ve banka tahsilatlarını listele.',
                     icon: Icons.point_of_sale,
                     width: cardWidth,
-                    onTap: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const CashTransactionsScreen(),
-                      ),
-                    ).then((_) => _fetchDashboardData()),
+                    onTap: () =>
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) =>
+                                const CashTransactionsScreen(),
+                          ),
+                        ).then((_) {
+                          if (mounted) setState(() => _selectedIndex = 0);
+                          _fetchDashboardData();
+                        }),
                   ),
                   _buildActionCard(
                     title: 'Dijital Evrak Arşivi',
@@ -1094,12 +1377,16 @@ class _AnaEkranState extends State<AnaEkran> {
                         'Mükellef evraklarını (Vergi Levhası vb.) bulutta sakla.',
                     icon: Icons.folder_shared,
                     width: cardWidth,
-                    onTap: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const DocumentArchiveScreen(),
-                      ),
-                    ).then((_) => _fetchDashboardData()),
+                    onTap: () =>
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const DocumentArchiveScreen(),
+                          ),
+                        ).then((_) {
+                          if (mounted) setState(() => _selectedIndex = 0);
+                          _fetchDashboardData();
+                        }),
                   ),
                 ],
               );
@@ -1153,18 +1440,16 @@ class _AnaEkranState extends State<AnaEkran> {
             const Divider(color: Colors.white12, height: 1),
         itemBuilder: (context, index) {
           final t = _recentTransactions[index];
-          final isPaid = t['is_paid'] as bool? ?? false;
+          final isPaid = t['is_paid'] == true;
           final amount = double.tryParse(t['amount'].toString()) ?? 0.0;
-          final clientTitle =
-              (t['clients'] as Map<String, dynamic>?)?['title'] ??
-              'Bilinmeyen Mükellef';
+          final clientTitle = t['client_title'] ?? 'Bilinmeyen Mükellef';
           String dateText = '-';
           if (t['created_at'] != null) {
             try {
               dateText = DateFormat(
                 'dd MMM yyyy HH:mm',
                 'tr_TR',
-              ).format(DateTime.parse(t['created_at']));
+              ).format(DateTime.parse(t['created_at'].toString()));
             } catch (_) {}
           }
           return ListTile(
@@ -1251,8 +1536,8 @@ class _AnaEkranState extends State<AnaEkran> {
             const Divider(color: Colors.white12, height: 1),
             const SizedBox(height: 8),
             _buildSidebarItem(
-              icon: Icons.dashboard,
-              title: 'Gösterge Paneli',
+              icon: Icons.home_rounded,
+              title: 'Ana Sayfa',
               index: 0,
             ),
             _buildSidebarItem(
@@ -1317,41 +1602,42 @@ class _AnaEkranState extends State<AnaEkran> {
     final isSelected = _selectedIndex == index;
     return InkWell(
       onTap: () {
+        if (index == 0) {
+          setState(() => _selectedIndex = 0);
+          if (MediaQuery.of(context).size.width <= 800) {
+            Navigator.pop(context);
+          }
+          return;
+        }
+
         setState(() => _selectedIndex = index);
         if (MediaQuery.of(context).size.width <= 800) {
           Navigator.pop(context);
         }
+
+        Widget? targetScreen;
         if (index == 1) {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => const ClientListScreen()),
-          ).then((_) => _fetchDashboardData());
+          targetScreen = const ClientListScreen();
         } else if (index == 2) {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => const CashTransactionsScreen(),
-            ),
-          ).then((_) => _fetchDashboardData());
+          targetScreen = const CashTransactionsScreen();
         } else if (index == 3) {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => const TaskManagementScreen(),
-            ),
-          ).then((_) => _fetchDashboardData());
+          targetScreen = const TaskManagementScreen();
         } else if (index == 4) {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => const ReportsScreen()),
-          ).then((_) => _fetchDashboardData());
+          targetScreen = const ReportsScreen();
         } else if (index == 5) {
+          targetScreen = const CompanySettingsScreen();
+        }
+
+        if (targetScreen != null) {
           Navigator.push(
             context,
-            MaterialPageRoute(
-              builder: (context) => const CompanySettingsScreen(),
-            ),
-          ).then((_) => _fetchDashboardData());
+            MaterialPageRoute(builder: (context) => targetScreen!),
+          ).then((_) {
+            if (mounted) {
+              setState(() => _selectedIndex = 0);
+              _fetchDashboardData();
+            }
+          });
         }
       },
       child: Container(

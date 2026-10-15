@@ -13,10 +13,8 @@ class OverduePaymentsScreen extends StatefulWidget {
 class _OverduePaymentsScreenState extends State<OverduePaymentsScreen> {
   final supabase = Supabase.instance.client;
   bool _isLoading = true;
-  String _companyId = '';
-
-  List<Map<String, dynamic>> _overdueTransactions = [];
-  double _totalOverdueAmount = 0.0;
+  List<Map<String, dynamic>> _overdueList = [];
+  double _totalOverdue = 0.0;
 
   @override
   void initState() {
@@ -34,261 +32,130 @@ class _OverduePaymentsScreenState extends State<OverduePaymentsScreen> {
           .select('company_id')
           .eq('id', user.id)
           .single();
-      _companyId = profile['company_id'];
+      final String companyId = profile['company_id'];
 
-      final res = await supabase
+      // Şirkete bağlı tüm mükellefleri çekiyoruz
+      final clientsRes = await supabase
+          .from('clients')
+          .select('id, title, phone')
+          .eq('company_id', companyId);
+
+      final Map<String, Map<String, dynamic>> clientMap = {};
+      for (var c in clientsRes) {
+        clientMap[c['id'].toString()] = c;
+      }
+
+      if (clientMap.isEmpty) {
+        if (mounted) {
+          setState(() {
+            _overdueList = [];
+            _totalOverdue = 0.0;
+            _isLoading = false;
+          });
+        }
+        return;
+      }
+
+      // Mükelleflere ait tüm işlemleri çekip ödenmemişleri filtreliyoruz (Ana Ekran ile %100 aynı mantık)
+      final txRes = await supabase
           .from('transactions')
-          .select('*, clients(title, phone, contact_name)')
-          .eq('company_id', _companyId)
-          .eq('is_paid', false)
+          .select()
+          .inFilter('client_id', clientMap.keys.toList())
           .order('due_date', ascending: true);
 
       double total = 0.0;
-      final today = DateTime.now();
-      List<Map<String, dynamic>> processedList = [];
+      List<Map<String, dynamic>> unpaidList = [];
 
-      for (var t in res) {
-        final totalAmount = double.tryParse(t['amount'].toString()) ?? 0.0;
-        final paidAmount =
-            double.tryParse(t['paid_amount']?.toString() ?? '0') ?? 0.0;
-        final remainingAmount = totalAmount - paidAmount;
-
-        if (remainingAmount <= 0) continue; // Hata payı kontrolü
-
-        total += remainingAmount;
-
-        bool isOverdue = false;
-        int delayDays = 0;
-        if (t['due_date'] != null) {
-          final dueDate = DateTime.parse(t['due_date'].toString());
-          if (dueDate.isBefore(DateTime(today.year, today.month, today.day))) {
-            isOverdue = true;
-            delayDays = today.difference(dueDate).inDays;
-          }
+      for (var t in txRes) {
+        final isPaid = t['is_paid'] == true;
+        if (!isPaid) {
+          final amount = double.tryParse(t['amount'].toString()) ?? 0.0;
+          total += amount;
+          final cInfo = clientMap[t['client_id'].toString()];
+          unpaidList.add({
+            ...t,
+            'client_title': cInfo?['title'] ?? 'Bilinmeyen Mükellef',
+            'client_phone': cInfo?['phone'] ?? '',
+          });
         }
-
-        var item = Map<String, dynamic>.from(t);
-        item['is_overdue'] = isOverdue;
-        item['delay_days'] = delayDays;
-        item['remaining_amount'] = remainingAmount;
-        item['paid_amount'] = paidAmount;
-        processedList.add(item);
       }
 
       if (mounted) {
         setState(() {
-          _overdueTransactions = processedList;
-          _totalOverdueAmount = total;
+          _overdueList = unpaidList;
+          _totalOverdue = total;
           _isLoading = false;
         });
       }
     } catch (e) {
-      if (mounted) setState(() => _isLoading = false);
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 
-  Future<void> _showPartialPaymentDialog(
-    Map<String, dynamic> transaction,
-  ) async {
-    final remaining = transaction['remaining_amount'] as double;
-    final totalAmount =
-        double.tryParse(transaction['amount'].toString()) ?? 0.0;
-    final currentPaid = transaction['paid_amount'] as double;
-
-    final controller = TextEditingController(
-      text: remaining.toStringAsFixed(2),
-    );
-    bool isProcessing = false;
-
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setDialogState) {
-          return AlertDialog(
-            backgroundColor: const Color(0xFF1A1A20),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
-            ),
-            title: const Text(
-              'Tahsilat Alın',
-              style: TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            content: isProcessing
-                ? const SizedBox(
-                    height: 100,
-                    child: Center(
-                      child: CircularProgressIndicator(
-                        color: Color(0xFF00ACC1),
-                      ),
-                    ),
-                  )
-                : Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Toplam Borç: ₺$totalAmount',
-                        style: const TextStyle(color: Colors.white54),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        'Kalan Bakiye: ₺$remaining',
-                        style: const TextStyle(
-                          color: Colors.redAccent,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      TextField(
-                        controller: controller,
-                        keyboardType: const TextInputType.numberWithOptions(
-                          decimal: true,
-                        ),
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
-                        ),
-                        decoration: InputDecoration(
-                          labelText: 'Alınan Tutar (₺)',
-                          labelStyle: const TextStyle(
-                            color: Colors.white54,
-                            fontSize: 14,
-                          ),
-                          filled: true,
-                          fillColor: const Color(0xFF101014),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide.none,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-            actions: isProcessing
-                ? []
-                : [
-                    TextButton(
-                      onPressed: () => Navigator.pop(context),
-                      child: const Text(
-                        'İptal',
-                        style: TextStyle(color: Colors.white54),
-                      ),
-                    ),
-                    ElevatedButton(
-                      onPressed: () async {
-                        final entered =
-                            double.tryParse(
-                              controller.text.replaceAll(',', '.'),
-                            ) ??
-                            0.0;
-                        if (entered <= 0) return;
-
-                        setDialogState(() => isProcessing = true);
-
-                        try {
-                          if (entered >= remaining) {
-                            // Borcun tamamı veya fazlası ödendiyse işlemi kapat
-                            await supabase
-                                .from('transactions')
-                                .update({
-                                  'is_paid': true,
-                                  'paid_amount': totalAmount,
-                                })
-                                .eq('id', transaction['id']);
-                          } else {
-                            // Kısmi tahsilat yapıldıysa sadece ödenen tutarı artır
-                            await supabase
-                                .from('transactions')
-                                .update({'paid_amount': currentPaid + entered})
-                                .eq('id', transaction['id']);
-                          }
-
-                          if (mounted) {
-                            Navigator.pop(context);
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text(
-                                  'Tahsilat başarıyla kasaya eklendi!',
-                                ),
-                                backgroundColor: Colors.green,
-                              ),
-                            );
-                            _fetchOverduePayments();
-                          }
-                        } catch (e) {
-                          setDialogState(() => isProcessing = false);
-                          if (mounted)
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Hata oluştu.'),
-                                backgroundColor: Colors.redAccent,
-                              ),
-                            );
-                        }
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF00ACC1),
-                      ),
-                      child: const Text(
-                        'Kasaya Ekle',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                  ],
-          );
-        },
-      ),
-    );
-  }
-
-  Future<void> _sendWhatsAppReminder(Map<String, dynamic> transaction) async {
-    final clientInfo = transaction['clients'] as Map<String, dynamic>?;
-    if (clientInfo == null ||
-        clientInfo['phone'] == null ||
-        clientInfo['phone'].toString().isEmpty) {
-      if (mounted)
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Mükellefe ait kayıtlı telefon numarası bulunamadı!'),
-            backgroundColor: Colors.orange,
-          ),
-        );
-      return;
-    }
-
-    String phone = clientInfo['phone'].toString().replaceAll(
-      RegExp(r'[^0-9]'),
-      '',
-    );
-    if (!phone.startsWith('90') && phone.length == 10) phone = '90$phone';
-
-    final amount = transaction['remaining_amount'] as double;
-    final formatter = NumberFormat.currency(locale: 'tr_TR', symbol: '₺');
-    final String msg =
-        'Merhaba ${clientInfo['contact_name'] ?? clientInfo['title']},\n\nKayıtlarımıza göre ${transaction['description']} işlemine ait (Kalan Tutar: ${formatter.format(amount)}) ödemeniz gecikmiştir. Ödemenizi en kısa sürede tamamlamanızı rica ederiz.\n\nİyi çalışmalar dileriz.';
-
-    final url = Uri.parse(
-      'https://wa.me/$phone?text=${Uri.encodeComponent(msg)}',
-    );
+  Future<void> _markAsPaid(String transactionId) async {
     try {
-      await launchUrl(url, mode: LaunchMode.externalApplication);
-    } catch (e) {
-      if (mounted)
+      await supabase
+          .from('transactions')
+          .update({'is_paid': true})
+          .eq('id', transactionId);
+      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('WhatsApp başlatılamadı.'),
-            backgroundColor: Colors.red,
+            content: Text('Tahsilat başarıyla alındı olarak işaretlendi!'),
+            backgroundColor: Colors.green,
           ),
         );
+      }
+      _fetchOverduePayments();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Tahsilat işlenirken hata oluştu.'),
+            backgroundColor: Colors.redAccent,
+          ),
+        );
+      }
     }
+  }
+
+  Future<void> _sendWhatsAppReminder(
+    String clientTitle,
+    String phone,
+    String desc,
+    double amount,
+  ) async {
+    final currencyFormatter = NumberFormat.currency(
+      locale: 'tr_TR',
+      symbol: '₺',
+    );
+    final message =
+        'Sayın $clientTitle, "$desc" kalemine ait ${currencyFormatter.format(amount)} tutarındaki ödemenizi hatırlatmak isteriz. İyi çalışmalar dileriz.';
+
+    String cleanPhone = phone.replaceAll(RegExp(r'[^0-9]'), '');
+    if (cleanPhone.startsWith('0')) {
+      cleanPhone = '90${cleanPhone.substring(1)}';
+    } else if (cleanPhone.isNotEmpty && !cleanPhone.startsWith('90')) {
+      cleanPhone = '90$cleanPhone';
+    }
+
+    final Uri whatsappUri = Uri.parse(
+      cleanPhone.isNotEmpty
+          ? 'https://wa.me/$cleanPhone?text=${Uri.encodeComponent(message)}'
+          : 'https://wa.me/?text=${Uri.encodeComponent(message)}',
+    );
+
+    if (await canLaunchUrl(whatsappUri)) {
+      await launchUrl(whatsappUri, mode: LaunchMode.externalApplication);
+    }
+  }
+
+  String _getFrequencyBadgeText(String? freq) {
+    if (freq == 'monthly') return 'Aylık Düzenli';
+    if (freq == 'yearly') return 'Yıllık Düzenli';
+    return '1 Defalık';
   }
 
   @override
@@ -297,14 +164,20 @@ class _OverduePaymentsScreenState extends State<OverduePaymentsScreen> {
       locale: 'tr_TR',
       symbol: '₺',
     );
+    final isMobile = MediaQuery.of(context).size.width < 600;
 
     return Scaffold(
       backgroundColor: const Color(0xFF101014),
       appBar: AppBar(
         backgroundColor: const Color(0xFF16161A),
+        elevation: 0,
         title: const Text(
           'Bekleyen / Gecikmiş Ödemeler',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+            fontSize: 17,
+          ),
         ),
         iconTheme: const IconThemeData(color: Colors.white),
       ),
@@ -314,231 +187,284 @@ class _OverduePaymentsScreenState extends State<OverduePaymentsScreen> {
             )
           : Column(
               children: [
+                // ÜST ÖZET ALANI
                 Container(
                   width: double.infinity,
-                  padding: const EdgeInsets.all(32),
+                  padding: EdgeInsets.symmetric(
+                    vertical: isMobile ? 20 : 28,
+                    horizontal: 16,
+                  ),
                   decoration: const BoxDecoration(
                     color: Color(0xFF16161A),
-                    border: Border(
-                      bottom: BorderSide(color: Colors.white12, width: 1),
-                    ),
+                    border: Border(bottom: BorderSide(color: Colors.white12)),
                   ),
                   child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
                       const Text(
                         'Toplam Bekleyen Alacak Tutarı',
-                        style: TextStyle(color: Colors.white54, fontSize: 16),
+                        style: TextStyle(color: Colors.white54, fontSize: 13),
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        currencyFormatter.format(_totalOverdueAmount),
+                        currencyFormatter.format(_totalOverdue),
                         style: const TextStyle(
                           color: Colors.redAccent,
-                          fontSize: 40,
+                          fontSize: 34,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-                      const SizedBox(height: 8),
+                      const SizedBox(height: 6),
                       Text(
-                        'Bekleyen İşlem Sayısı: ${_overdueTransactions.length}',
-                        style: const TextStyle(color: Colors.white70),
+                        'Bekleyen İşlem Sayısı: ${_overdueList.length}',
+                        style: const TextStyle(
+                          color: Colors.white54,
+                          fontSize: 13,
+                        ),
                       ),
                     ],
                   ),
                 ),
 
+                // LİSTE ALANI (DİKEY UZAMAYAN MODERN KARTLAR)
                 Expanded(
-                  child: _overdueTransactions.isEmpty
+                  child: _overdueList.isEmpty
                       ? const Center(
-                          child: Text(
-                            'Harika! Tüm mükellefler ödemelerini yapmış.',
-                            style: TextStyle(
-                              color: Colors.greenAccent,
-                              fontSize: 16,
-                            ),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.check_circle_outline,
+                                size: 64,
+                                color: Colors.greenAccent,
+                              ),
+                              SizedBox(height: 16),
+                              Text(
+                                'Bekleyen veya geciken alacağınız bulunmuyor!',
+                                style: TextStyle(
+                                  color: Colors.white54,
+                                  fontSize: 15,
+                                ),
+                              ),
+                            ],
                           ),
                         )
                       : ListView.builder(
-                          padding: const EdgeInsets.all(32),
-                          itemCount: _overdueTransactions.length,
+                          padding: EdgeInsets.all(isMobile ? 16 : 24),
+                          itemCount: _overdueList.length,
                           itemBuilder: (context, index) {
-                            final t = _overdueTransactions[index];
-                            final clientInfo =
-                                t['clients'] as Map<String, dynamic>?;
-                            final remaining = t['remaining_amount'] as double;
-                            final isOverdue = t['is_overdue'] as bool;
-                            final delayDays = t['delay_days'] as int;
+                            final item = _overdueList[index];
+                            final clientTitle =
+                                item['client_title'] ?? 'Mükellef';
+                            final clientPhone = item['client_phone'] ?? '';
+                            final amount =
+                                double.tryParse(item['amount'].toString()) ??
+                                0.0;
+                            final desc =
+                                item['description'] ?? 'Belirtilmemiş İşlem';
+                            final freq = item['frequency']?.toString();
 
-                            String dateText = '-';
-                            if (t['due_date'] != null) {
+                            String dateStr = 'Belirtilmemiş';
+                            if (item['due_date'] != null) {
                               try {
-                                dateText = DateFormat(
-                                  'dd.MM.yyyy',
-                                ).format(DateTime.parse(t['due_date']));
+                                dateStr = DateFormat('dd.MM.yyyy').format(
+                                  DateTime.parse(item['due_date'].toString()),
+                                );
                               } catch (_) {}
                             }
 
                             return Container(
-                              margin: const EdgeInsets.only(bottom: 16),
+                              margin: const EdgeInsets.only(bottom: 14),
+                              padding: const EdgeInsets.all(16),
                               decoration: BoxDecoration(
                                 color: const Color(0xFF1A1A20),
                                 borderRadius: BorderRadius.circular(16),
                                 border: Border.all(
-                                  color: Colors.white.withValues(alpha: 0.05),
+                                  color: Colors.white.withValues(alpha: 0.06),
                                 ),
                               ),
-                              child: Padding(
-                                padding: const EdgeInsets.all(24),
-                                child: Row(
-                                  crossAxisAlignment: CrossAxisAlignment.center,
-                                  children: [
-                                    Container(
-                                      padding: const EdgeInsets.all(16),
-                                      decoration: BoxDecoration(
-                                        color: isOverdue
-                                            ? Colors.redAccent.withValues(
-                                                alpha: 0.1,
-                                              )
-                                            : Colors.orangeAccent.withValues(
-                                                alpha: 0.1,
-                                              ),
-                                        borderRadius: BorderRadius.circular(12),
-                                      ),
-                                      child: Icon(
-                                        isOverdue
-                                            ? Icons.warning_amber_rounded
-                                            : Icons.schedule,
-                                        color: isOverdue
-                                            ? Colors.redAccent
-                                            : Colors.orangeAccent,
-                                        size: 28,
-                                      ),
-                                    ),
-                                    const SizedBox(width: 24),
-
-                                    Expanded(
-                                      child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          Text(
-                                            clientInfo?['title'] ??
-                                                'Bilinmeyen Mükellef',
-                                            style: const TextStyle(
-                                              color: Colors.white,
-                                              fontSize: 16,
-                                              fontWeight: FontWeight.bold,
-                                            ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  // 1. SATIR: İKON + MÜKELLEF ADI + TUTAR
+                                  Row(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Container(
+                                        padding: const EdgeInsets.all(10),
+                                        decoration: BoxDecoration(
+                                          color: Colors.orangeAccent.withValues(
+                                            alpha: 0.12,
                                           ),
-                                          const SizedBox(height: 6),
-                                          Text(
-                                            '${t['description']} • Vade: $dateText',
-                                            style: const TextStyle(
-                                              color: Colors.white54,
-                                              fontSize: 13,
-                                            ),
-                                          ),
-                                          const SizedBox(height: 6),
-                                          if (isOverdue)
-                                            Container(
-                                              padding:
-                                                  const EdgeInsets.symmetric(
-                                                    horizontal: 8,
-                                                    vertical: 4,
-                                                  ),
-                                              decoration: BoxDecoration(
-                                                color: Colors.redAccent
-                                                    .withValues(alpha: 0.2),
-                                                borderRadius:
-                                                    BorderRadius.circular(6),
-                                              ),
-                                              child: Text(
-                                                'Vadesi $delayDays gün geçti',
-                                                style: const TextStyle(
-                                                  color: Colors.redAccent,
-                                                  fontSize: 11,
-                                                  fontWeight: FontWeight.bold,
-                                                ),
-                                              ),
-                                            ),
-                                        ],
-                                      ),
-                                    ),
-
-                                    Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.end,
-                                      children: [
-                                        Text(
-                                          currencyFormatter.format(remaining),
-                                          style: const TextStyle(
-                                            color: Colors.redAccent,
-                                            fontSize: 20,
-                                            fontWeight: FontWeight.bold,
+                                          borderRadius: BorderRadius.circular(
+                                            12,
                                           ),
                                         ),
-                                        const SizedBox(height: 16),
-                                        Row(
+                                        child: const Icon(
+                                          Icons.schedule,
+                                          color: Colors.orangeAccent,
+                                          size: 22,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 12),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
                                           children: [
-                                            OutlinedButton.icon(
-                                              onPressed: () =>
-                                                  _sendWhatsAppReminder(t),
-                                              icon: const Icon(
-                                                Icons.chat,
-                                                size: 16,
-                                                color: Colors.greenAccent,
-                                              ),
-                                              label: const Text(
-                                                'Hatırlat',
-                                                style: TextStyle(
-                                                  color: Colors.greenAccent,
-                                                ),
-                                              ),
-                                              style: OutlinedButton.styleFrom(
-                                                side: const BorderSide(
-                                                  color: Colors.greenAccent,
-                                                ),
-                                                padding:
-                                                    const EdgeInsets.symmetric(
-                                                      horizontal: 12,
-                                                      vertical: 8,
-                                                    ),
+                                            Text(
+                                              clientTitle,
+                                              style: const TextStyle(
+                                                color: Colors.white,
+                                                fontSize: 16,
+                                                fontWeight: FontWeight.bold,
                                               ),
                                             ),
-                                            const SizedBox(width: 12),
-                                            ElevatedButton.icon(
-                                              onPressed: () =>
-                                                  _showPartialPaymentDialog(t),
-                                              icon: const Icon(
-                                                Icons.point_of_sale,
-                                                size: 16,
-                                                color: Colors.white,
-                                              ),
-                                              label: const Text(
-                                                'Tahsil Et',
-                                                style: TextStyle(
-                                                  color: Colors.white,
-                                                  fontWeight: FontWeight.bold,
-                                                ),
-                                              ),
-                                              style: ElevatedButton.styleFrom(
-                                                backgroundColor: const Color(
-                                                  0xFF00ACC1,
-                                                ),
-                                                padding:
-                                                    const EdgeInsets.symmetric(
-                                                      horizontal: 16,
-                                                      vertical: 8,
-                                                    ),
+                                            const SizedBox(height: 4),
+                                            Text(
+                                              desc,
+                                              style: const TextStyle(
+                                                color: Colors.white70,
+                                                fontSize: 13,
                                               ),
                                             ),
                                           ],
                                         ),
-                                      ],
-                                    ),
-                                  ],
-                                ),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.end,
+                                        children: [
+                                          Text(
+                                            currencyFormatter.format(amount),
+                                            style: const TextStyle(
+                                              color: Colors.redAccent,
+                                              fontSize: 17,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 4),
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 8,
+                                              vertical: 2,
+                                            ),
+                                            decoration: BoxDecoration(
+                                              color: const Color(
+                                                0xFF00ACC1,
+                                              ).withValues(alpha: 0.15),
+                                              borderRadius:
+                                                  BorderRadius.circular(6),
+                                            ),
+                                            child: Text(
+                                              _getFrequencyBadgeText(freq),
+                                              style: const TextStyle(
+                                                color: Color(0xFF00ACC1),
+                                                fontSize: 10,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 12),
+                                  const Divider(
+                                    color: Colors.white12,
+                                    height: 1,
+                                  ),
+                                  const SizedBox(height: 12),
+
+                                  // 2. SATIR: VADE TARİHİ + HATIRLAT & TAHSİL ET BUTONLARI
+                                  Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Text(
+                                        'Vade: $dateStr',
+                                        style: const TextStyle(
+                                          color: Colors.white54,
+                                          fontSize: 12,
+                                        ),
+                                      ),
+                                      Row(
+                                        children: [
+                                          OutlinedButton.icon(
+                                            onPressed: () =>
+                                                _sendWhatsAppReminder(
+                                                  clientTitle,
+                                                  clientPhone,
+                                                  desc,
+                                                  amount,
+                                                ),
+                                            icon: const Icon(
+                                              Icons.chat_bubble_outline,
+                                              color: Colors.greenAccent,
+                                              size: 16,
+                                            ),
+                                            label: const Text(
+                                              'Hatırlat',
+                                              style: TextStyle(
+                                                color: Colors.white,
+                                                fontSize: 12,
+                                              ),
+                                            ),
+                                            style: OutlinedButton.styleFrom(
+                                              side: const BorderSide(
+                                                color: Colors.greenAccent,
+                                                width: 0.8,
+                                              ),
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                    horizontal: 12,
+                                                    vertical: 8,
+                                                  ),
+                                              shape: RoundedRectangleBorder(
+                                                borderRadius:
+                                                    BorderRadius.circular(20),
+                                              ),
+                                            ),
+                                          ),
+                                          const SizedBox(width: 8),
+                                          ElevatedButton.icon(
+                                            onPressed: () => _markAsPaid(
+                                              item['id'].toString(),
+                                            ),
+                                            icon: const Icon(
+                                              Icons.point_of_sale,
+                                              color: Colors.white,
+                                              size: 16,
+                                            ),
+                                            label: const Text(
+                                              'Tahsil Et',
+                                              style: TextStyle(
+                                                color: Colors.white,
+                                                fontSize: 12,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                            style: ElevatedButton.styleFrom(
+                                              backgroundColor: const Color(
+                                                0xFF00ACC1,
+                                              ),
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                    horizontal: 14,
+                                                    vertical: 8,
+                                                  ),
+                                              shape: RoundedRectangleBorder(
+                                                borderRadius:
+                                                    BorderRadius.circular(20),
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ],
+                                  ),
+                                ],
                               ),
                             );
                           },

@@ -34,26 +34,32 @@ class _RegisterScreenState extends State<RegisterScreen> {
     setState(() => _isLoading = true);
 
     try {
-      final companyId = _inviteCodeController.text.trim();
+      final enteredCode = _inviteCodeController.text.trim().toUpperCase();
+
+      // Girilen MHK_1234 koduna sahip şirketi bul (büyük/küçük harf duyarsız)
       final companyCheck = await supabase
           .from('companies')
-          .select('id')
-          .eq('id', companyId)
+          .select('id, name')
+          .ilike('invite_code', enteredCode)
           .maybeSingle();
 
       if (companyCheck == null) {
-        if (mounted)
+        if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text(
-                'Geçersiz davet kodu! Lütfen yöneticinizden doğru kodu alın.',
+                'Geçersiz Şirket Kodu! Lütfen yöneticinizden doğru kodu (Örn: MHK_1234) alın.',
               ),
               backgroundColor: Colors.redAccent,
             ),
           );
+        }
         setState(() => _isLoading = false);
         return;
       }
+
+      final String targetCompanyId = companyCheck['id'];
+      final String companyName = companyCheck['name'];
 
       final authRes = await supabase.auth.signUp(
         email: _emailController.text.trim(),
@@ -61,19 +67,17 @@ class _RegisterScreenState extends State<RegisterScreen> {
       );
 
       if (authRes.user != null) {
-        await supabase
-            .from('profiles')
-            .update({
-              'full_name': _nameController.text.trim(),
-              'company_id': companyId,
-              'role': 'personel',
-            })
-            .eq('id', authRes.user!.id);
+        await supabase.from('profiles').upsert({
+          'id': authRes.user!.id,
+          'full_name': _nameController.text.trim(),
+          'company_id': targetCompanyId,
+          'role': 'personel',
+        });
 
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Ekibe başarıyla katıldınız!'),
+            SnackBar(
+              content: Text('$companyName ekibine başarıyla katıldınız!'),
               backgroundColor: Colors.green,
             ),
           );
@@ -83,14 +87,24 @@ class _RegisterScreenState extends State<RegisterScreen> {
           );
         }
       }
-    } catch (e) {
-      if (mounted)
+    } on AuthException catch (e) {
+      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Kayıt sırasında bir hata oluştu.'),
+          SnackBar(
+            content: Text('Kayıt Hatası: ${e.message}'),
             backgroundColor: Colors.redAccent,
           ),
         );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Bağlantı Hatası: $e'),
+            backgroundColor: Colors.redAccent,
+          ),
+        );
+      }
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -121,7 +135,16 @@ class _RegisterScreenState extends State<RegisterScreen> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Image.asset('assets/logo.png', height: 95, fit: BoxFit.contain),
+                Image.asset(
+                  'assets/logo.png',
+                  height: 90,
+                  fit: BoxFit.contain,
+                  errorBuilder: (_, __, ___) => const Icon(
+                    Icons.group_add,
+                    color: Color(0xFF00ACC1),
+                    size: 48,
+                  ),
+                ),
                 const SizedBox(height: 16),
                 const Text(
                   'Personel Kaydı',
@@ -133,7 +156,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 ),
                 const SizedBox(height: 6),
                 const Text(
-                  'Yöneticinizden aldığınız davet koduyla katılın.',
+                  'Yöneticinizden aldığınız Şirket Kodu ile katılın.',
                   style: TextStyle(color: Colors.white54, fontSize: 13),
                   textAlign: TextAlign.center,
                 ),
@@ -151,7 +174,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 ),
                 const SizedBox(height: 14),
                 _buildField(
-                  'Şirket Davet Kodu (ID)',
+                  'Şirket Davet Kodu (Örn: MHK_1234)',
                   _inviteCodeController,
                   Icons.vpn_key,
                 ),
@@ -206,7 +229,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       style: const TextStyle(color: Colors.white),
       decoration: InputDecoration(
         labelText: label,
-        labelStyle: const TextStyle(color: Colors.white54),
+        labelStyle: const TextStyle(color: Colors.white54, fontSize: 13),
         prefixIcon: Icon(icon, color: Colors.white30),
         filled: true,
         fillColor: const Color(0xFF101014),
