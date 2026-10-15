@@ -41,96 +41,94 @@ class _AnaEkranState extends State<AnaEkran> {
     _fetchDashboardData();
   }
 
-  // ===========================================================================
-  // OTOMATİK AYLIK VE YILLIK TAHAKKUK ÜRETİCİ MOTOR
-  // ===========================================================================
+  // OTOMATİK AYLIK VE YILLIK TAHAKKUK ÜRETİCİ MOTOR (HATA KORUMALI)
   Future<void> _checkAndGenerateRecurringTransactions(
     List<String> activeClientIds,
     List<Map<String, dynamic>> allTransactions,
   ) async {
-    if (activeClientIds.isEmpty || allTransactions.isEmpty) return;
+    try {
+      if (activeClientIds.isEmpty || allTransactions.isEmpty) return;
 
-    final now = DateTime.now();
-    final currentMonthKey = DateFormat('yyyy-MM').format(now);
-    final currentYearKey = DateFormat('yyyy').format(now);
-    final monthName = DateFormat('MMMM yyyy', 'tr_TR').format(now);
+      final now = DateTime.now();
+      final currentMonthKey = DateFormat('yyyy-MM').format(now);
+      final currentYearKey = DateFormat('yyyy').format(now);
+      final monthName = DateFormat('MMMM yyyy', 'tr_TR').format(now);
 
-    // Mükellef bazında tanımlanmış Aylık veya Yıllık şablonları buluyoruz
-    final Map<String, Map<String, dynamic>> recurringTemplates = {};
+      final Map<String, Map<String, dynamic>> recurringTemplates = {};
 
-    for (var t in allTransactions) {
-      final freq = t['frequency']?.toString() ?? 'one_time';
-      if (freq == 'monthly' || freq == 'yearly') {
-        final clientId = t['client_id'].toString();
-        if (!activeClientIds.contains(clientId)) continue;
+      for (var t in allTransactions) {
+        final freq = t['frequency']?.toString() ?? 'one_time';
+        if (freq == 'monthly' || freq == 'yearly') {
+          final clientId = t['client_id']?.toString() ?? '';
+          if (clientId.isEmpty || !activeClientIds.contains(clientId)) continue;
 
-        // Hizmetin saf adını ayıklıyoruz (Örn: "Danışmanlık Hizmeti • Ekim 2026" -> "Danışmanlık Hizmeti")
-        final rawDesc = (t['description'] ?? 'Hizmet Bedeli').toString();
-        final baseDesc = rawDesc.split(' • ').first.trim();
-        final templateKey = '${clientId}_${baseDesc}_$freq';
+          final rawDesc = (t['description'] ?? 'Hizmet Bedeli').toString();
+          final baseDesc = rawDesc.split(' • ').first.trim();
+          final templateKey = '${clientId}_${baseDesc}_$freq';
 
-        if (!recurringTemplates.containsKey(templateKey)) {
-          recurringTemplates[templateKey] = {
-            'client_id': clientId,
-            'base_desc': baseDesc,
-            'amount': double.tryParse(t['amount'].toString()) ?? 0.0,
-            'payment_type_id': t['payment_type_id'],
-            'frequency': freq,
-          };
+          if (!recurringTemplates.containsKey(templateKey)) {
+            recurringTemplates[templateKey] = {
+              'client_id': clientId,
+              'base_desc': baseDesc,
+              'amount': double.tryParse(t['amount'].toString()) ?? 0.0,
+              'payment_type_id': t['payment_type_id'],
+              'frequency': freq,
+            };
+          }
         }
       }
-    }
 
-    if (recurringTemplates.isEmpty) return;
+      if (recurringTemplates.isEmpty) return;
 
-    final List<Map<String, dynamic>> newInserts = [];
+      final List<Map<String, dynamic>> newInserts = [];
 
-    for (var entry in recurringTemplates.entries) {
-      final tmpl = entry.value;
-      final clientId = tmpl['client_id'];
-      final baseDesc = tmpl['base_desc'];
-      final freq = tmpl['frequency'];
-      final targetPeriodKey = freq == 'monthly'
-          ? currentMonthKey
-          : currentYearKey;
+      for (var entry in recurringTemplates.entries) {
+        final tmpl = entry.value;
+        final clientId = tmpl['client_id'];
+        final baseDesc = tmpl['base_desc'];
+        final freq = tmpl['frequency'];
+        final targetPeriodKey = freq == 'monthly'
+            ? currentMonthKey
+            : currentYearKey;
 
-      // Bu mükellef için bu ayın (veya yılın) tahakkuku zaten var mı kontrol et
-      final alreadyExists = allTransactions.any((t) {
-        if (t['client_id'].toString() != clientId) return false;
-        final tDesc = (t['description'] ?? '').toString();
-        final tBaseDesc = tDesc.split(' • ').first.trim();
-        if (tBaseDesc != baseDesc) return false;
+        final alreadyExists = allTransactions.any((t) {
+          if (t['client_id']?.toString() != clientId) return false;
+          final tDesc = (t['description'] ?? '').toString();
+          final tBaseDesc = tDesc.split(' • ').first.trim();
+          if (tBaseDesc != baseDesc) return false;
 
-        final pKey = t['period_key']?.toString();
-        if (pKey == targetPeriodKey) return true;
+          final pKey = t['period_key']?.toString();
+          if (pKey == targetPeriodKey) return true;
 
-        // Eğer eski kayıtta period_key yoksa due_date veya created_at ayına bak
-        final dateStr = (t['due_date'] ?? t['created_at'] ?? '').toString();
-        if (dateStr.startsWith(targetPeriodKey)) return true;
+          final dateStr = (t['due_date'] ?? t['created_at'] ?? '').toString();
+          if (dateStr.startsWith(targetPeriodKey)) return true;
 
-        return false;
-      });
-
-      if (!alreadyExists) {
-        final periodLabel = freq == 'monthly' ? monthName : '${now.year} Yılı';
-        newInserts.add({
-          'company_id': _companyId,
-          'client_id': clientId,
-          'payment_type_id': tmpl['payment_type_id'],
-          'description': '$baseDesc • $periodLabel',
-          'amount': tmpl['amount'],
-          'is_paid': false,
-          'due_date': now.toIso8601String().split('T')[0],
-          'frequency': freq,
-          'period_key': targetPeriodKey,
+          return false;
         });
-      }
-    }
 
-    if (newInserts.isNotEmpty) {
-      try {
+        if (!alreadyExists) {
+          final periodLabel = freq == 'monthly'
+              ? monthName
+              : '${now.year} Yılı';
+          newInserts.add({
+            'company_id': _companyId,
+            'client_id': clientId,
+            'payment_type_id': tmpl['payment_type_id'],
+            'description': '$baseDesc • $periodLabel',
+            'amount': tmpl['amount'],
+            'is_paid': false,
+            'due_date': now.toIso8601String().split('T')[0],
+            'frequency': freq,
+            'period_key': targetPeriodKey,
+          });
+        }
+      }
+
+      if (newInserts.isNotEmpty) {
         await supabase.from('transactions').insert(newInserts);
-      } catch (_) {}
+      }
+    } catch (_) {
+      // Sütun eksikliği vb. durumlarda ana ekranın veri çekmesini asla engellemez
     }
   }
 
@@ -147,6 +145,7 @@ class _AnaEkranState extends State<AnaEkran> {
         return;
       }
 
+      // 1. Kullanıcı ve Şirket bilgisini güvenli şekilde al
       final profileData = await supabase
           .from('profiles')
           .select('full_name, role, company_id, companies(name)')
@@ -155,52 +154,69 @@ class _AnaEkranState extends State<AnaEkran> {
 
       _userName = profileData['full_name'] ?? 'Kullanıcı';
       _userRole = profileData['role'] ?? 'personel';
-      _companyId = profileData['company_id'];
+      _companyId = profileData['company_id'].toString();
       final companyInfo = profileData['companies'] as Map<String, dynamic>?;
       _companyName = companyInfo != null
-          ? companyInfo['name']
+          ? (companyInfo['name'] ?? 'Mükellef Takip')
           : 'Mükellef Takip';
 
-      // Şirketin mükelleflerini çekiyoruz
-      final clientsData = await supabase
+      // 2. Mükellefleri Mükellef Yönetimi ekranıyla BİREBİR AYNI şekilde çek (.select() ile sütun hatası önlendi)
+      final clientsRes = await supabase
           .from('clients')
-          .select('id, title, is_active')
+          .select()
           .eq('company_id', _companyId);
+      final clientsList = List<Map<String, dynamic>>.from(clientsRes);
 
       final Map<String, String> clientNames = {};
       final List<String> activeClientIds = [];
-      for (var c in clientsData) {
+      for (var c in clientsList) {
         final cId = c['id'].toString();
-        clientNames[cId] = (c['title'] ?? 'Bilinmeyen Mükellef').toString();
+        clientNames[cId] = (c['title'] ?? 'Mükellef').toString();
         if (c['is_active'] != false) {
           activeClientIds.add(cId);
         }
       }
 
+      // 3. İşlemleri hem company_id hem de client_id üzerinden eksiksiz çek (Kasa ve Geciken Ödemeler ile %100 aynı!)
       List<Map<String, dynamic>> transactionsData = [];
-      if (clientNames.isNotEmpty) {
-        final txRes = await supabase
+      try {
+        final txByCompany = await supabase
             .from('transactions')
-            .select()
-            .inFilter('client_id', clientNames.keys.toList())
+            .select('*, clients(title)')
+            .eq('company_id', _companyId)
             .order('created_at', ascending: false);
-        transactionsData = List<Map<String, dynamic>>.from(txRes);
+        transactionsData = List<Map<String, dynamic>>.from(txByCompany);
+      } catch (_) {}
 
-        // Otomatik Aylık / Yıllık tahakkuk kontrolünü çalıştır
+      // Eğer bazı işlemlerde company_id boş kalmışsa ama client_id bu şirkete aitse onları da dahil et
+      if (clientNames.isNotEmpty) {
+        try {
+          final txByClients = await supabase
+              .from('transactions')
+              .select()
+              .inFilter('client_id', clientNames.keys.toList())
+              .order('created_at', ascending: false);
+
+          final existingIds = transactionsData
+              .map((e) => e['id'].toString())
+              .toSet();
+          for (var tx in txByClients) {
+            if (!existingIds.contains(tx['id'].toString())) {
+              transactionsData.add(tx);
+            }
+          }
+        } catch (_) {}
+      }
+
+      // Periyodik tahakkuk kontrolü
+      if (activeClientIds.isNotEmpty && transactionsData.isNotEmpty) {
         await _checkAndGenerateRecurringTransactions(
           activeClientIds,
           transactionsData,
         );
-
-        // Yeni otomatik tahakkuk eklendiyse güncel listeyi tekrar çek
-        final updatedTxRes = await supabase
-            .from('transactions')
-            .select()
-            .inFilter('client_id', clientNames.keys.toList())
-            .order('created_at', ascending: false);
-        transactionsData = List<Map<String, dynamic>>.from(updatedTxRes);
       }
 
+      // 4. Kasa Geliri ve Bekleyen Tahsilatları Hesapla
       double bekleyen = 0.0;
       double gelir = 0.0;
       List<Map<String, dynamic>> newAlerts = [];
@@ -210,14 +226,19 @@ class _AnaEkranState extends State<AnaEkran> {
       for (var t in transactionsData) {
         final amount = double.tryParse(t['amount'].toString()) ?? 0.0;
         final isPaid = t['is_paid'] == true;
-        final cTitle = clientNames[t['client_id'].toString()] ?? 'Mükellef';
+
+        String cTitle = 'Mükellef';
+        if (t['clients'] != null && t['clients'] is Map) {
+          cTitle = t['clients']['title']?.toString() ?? 'Mükellef';
+        } else if (t['client_id'] != null &&
+            clientNames.containsKey(t['client_id'].toString())) {
+          cTitle = clientNames[t['client_id'].toString()]!;
+        }
 
         if (isPaid) {
           gelir += amount;
         } else {
-          // Ödenmemiş tüm işlemleri kuruşu kuruşuna Geciken Ödemeler ekranı ile aynı toplar
           bekleyen += amount;
-
           if (t['due_date'] != null) {
             try {
               final dueDate = DateTime.parse(t['due_date'].toString());
@@ -242,16 +263,21 @@ class _AnaEkranState extends State<AnaEkran> {
             (a['due_date'] as DateTime).compareTo(b['due_date'] as DateTime),
       );
 
+      // Son 5 hareketi hazırla
       final recentFive = transactionsData.take(5).map((t) {
-        return {
-          ...t,
-          'client_title': clientNames[t['client_id'].toString()] ?? 'Mükellef',
-        };
+        String cTitle = 'Mükellef';
+        if (t['clients'] != null && t['clients'] is Map) {
+          cTitle = t['clients']['title']?.toString() ?? 'Mükellef';
+        } else if (t['client_id'] != null &&
+            clientNames.containsKey(t['client_id'].toString())) {
+          cTitle = clientNames[t['client_id'].toString()]!;
+        }
+        return {...t, 'client_title': cTitle};
       }).toList();
 
       if (mounted) {
         setState(() {
-          _aktifMukellefCount = clientsData.length;
+          _aktifMukellefCount = clientsList.length;
           _bekleyenTahsilat = bekleyen;
           _toplamGelir = gelir;
           _alerts = newAlerts;
@@ -260,6 +286,7 @@ class _AnaEkranState extends State<AnaEkran> {
         });
       }
     } catch (e) {
+      debugPrint('Ana Ekran Veri Hatası: $e');
       if (mounted) {
         setState(() => _isLoading = false);
       }
@@ -378,9 +405,6 @@ class _AnaEkranState extends State<AnaEkran> {
     );
   }
 
-  // ===========================================================================
-  // PERİYOT SEÇİMLİ (AYLIK / YILLIK / 1 DEFALIK) TOPLU TAHAKKUK PENCERESİ
-  // ===========================================================================
   Future<void> _showTopluTahakkukDialog() async {
     final paymentTypesRes = await supabase
         .from('payment_types')
@@ -405,9 +429,9 @@ class _AnaEkranState extends State<AnaEkran> {
 
     final amountController = TextEditingController();
     final customNoteController = TextEditingController();
-    String? selectedPaymentTypeId;
-    String? selectedPaymentTypeName;
-    String selectedFrequency = 'monthly'; // Varsayılan: Aylık Düzenli
+    String? selectedPaymentTypeId = paymentTypes.first['id'].toString();
+    String selectedPaymentTypeName = paymentTypes.first['name'].toString();
+    String selectedFrequency = 'monthly';
     bool isProcessing = false;
 
     if (!mounted) return;
@@ -463,6 +487,7 @@ class _AnaEkranState extends State<AnaEkran> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             DropdownButtonFormField<String>(
+                              value: selectedPaymentTypeId,
                               isExpanded: true,
                               dropdownColor: const Color(0xFF222222),
                               style: const TextStyle(color: Colors.white),
@@ -486,13 +511,17 @@ class _AnaEkranState extends State<AnaEkran> {
                                     ),
                                   )
                                   .toList(),
-                              onChanged: (value) => setDialogState(() {
-                                selectedPaymentTypeId = value;
-                                selectedPaymentTypeName = paymentTypes
-                                    .firstWhere(
-                                      (pt) => pt['id'].toString() == value,
-                                    )['name'];
-                              }),
+                              onChanged: (value) {
+                                if (value != null) {
+                                  setDialogState(() {
+                                    selectedPaymentTypeId = value;
+                                    selectedPaymentTypeName = paymentTypes
+                                        .firstWhere(
+                                          (pt) => pt['id'].toString() == value,
+                                        )['name'];
+                                  });
+                                }
+                              },
                             ),
                             const SizedBox(height: 14),
                             DropdownButtonFormField<String>(
@@ -634,6 +663,7 @@ class _AnaEkranState extends State<AnaEkran> {
                           }
                           setDialogState(() => isProcessing = true);
                           try {
+                            // Sütun hatası vermemesi için is_active filtresi zorlanmadan tüm şirket mükellefleri çekilir
                             final clientsRes = await supabase
                                 .from('clients')
                                 .select('id')
@@ -660,7 +690,7 @@ class _AnaEkranState extends State<AnaEkran> {
 
                             final baseTitle =
                                 customNoteController.text.trim().isEmpty
-                                ? selectedPaymentTypeName!
+                                ? selectedPaymentTypeName
                                 : '$selectedPaymentTypeName (${customNoteController.text.trim()})';
 
                             final finalDesc = selectedFrequency == 'one_time'
@@ -690,9 +720,31 @@ class _AnaEkranState extends State<AnaEkran> {
                                     .toList();
 
                             if (batchInserts.isNotEmpty) {
-                              await supabase
-                                  .from('transactions')
-                                  .insert(batchInserts);
+                              try {
+                                await supabase
+                                    .from('transactions')
+                                    .insert(batchInserts);
+                              } catch (_) {
+                                // Eğer frequency/period_key sütunu henüz açılmadıysa temel sütunlarla kaydet
+                                final fallbackInserts =
+                                    List<Map<String, dynamic>>.from(clientsRes)
+                                        .map(
+                                          (c) => {
+                                            'company_id': _companyId,
+                                            'client_id': c['id'],
+                                            'payment_type_id':
+                                                selectedPaymentTypeId,
+                                            'description': finalDesc,
+                                            'amount': amount,
+                                            'is_paid': false,
+                                            'due_date': todayStr,
+                                          },
+                                        )
+                                        .toList();
+                                await supabase
+                                    .from('transactions')
+                                    .insert(fallbackInserts);
+                              }
                             }
 
                             if (mounted) {
@@ -928,14 +980,16 @@ class _AnaEkranState extends State<AnaEkran> {
                     Expanded(
                       child: Column(
                         children: [
-                          Text(
-                            currencyFormatter.format(_bekleyenTahsilat),
-                            style: const TextStyle(
-                              color: Color(0xFFFF8A80),
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
+                          FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: Text(
+                              currencyFormatter.format(_bekleyenTahsilat),
+                              style: const TextStyle(
+                                color: Color(0xFFFF8A80),
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
-                            overflow: TextOverflow.ellipsis,
                           ),
                           const SizedBox(height: 4),
                           const Text(
@@ -952,14 +1006,16 @@ class _AnaEkranState extends State<AnaEkran> {
                     Expanded(
                       child: Column(
                         children: [
-                          Text(
-                            currencyFormatter.format(_toplamGelir),
-                            style: const TextStyle(
-                              color: Colors.greenAccent,
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
+                          FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: Text(
+                              currencyFormatter.format(_toplamGelir),
+                              style: const TextStyle(
+                                color: Colors.greenAccent,
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
-                            overflow: TextOverflow.ellipsis,
                           ),
                           const SizedBox(height: 4),
                           const Text(
