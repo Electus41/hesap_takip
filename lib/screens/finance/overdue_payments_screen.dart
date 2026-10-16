@@ -56,7 +56,7 @@ class _OverduePaymentsScreenState extends State<OverduePaymentsScreen> {
         return;
       }
 
-      // Mükelleflere ait tüm işlemleri çekip ödenmemişleri filtreliyoruz (Ana Ekran ile %100 aynı mantık)
+      // Mükelleflere ait tüm işlemleri çekip ödenmemişleri filtreliyoruz
       final txRes = await supabase
           .from('transactions')
           .select()
@@ -94,31 +94,145 @@ class _OverduePaymentsScreenState extends State<OverduePaymentsScreen> {
     }
   }
 
-  Future<void> _markAsPaid(String transactionId) async {
-    try {
-      await supabase
-          .from('transactions')
-          .update({'is_paid': true})
-          .eq('id', transactionId);
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Tahsilat başarıyla alındı olarak işaretlendi!'),
-            backgroundColor: Colors.green,
-          ),
+  // TAHSİLAT YAPMA DİYALOĞU (Kısmi veya Tam Ödeme)
+  void _showPaymentDialog(Map<String, dynamic> item) {
+    final double maxAmount = double.tryParse(item['amount'].toString()) ?? 0.0;
+    final amountController = TextEditingController(
+      text: maxAmount.toStringAsFixed(0),
+    );
+    bool isProcessing = false;
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              backgroundColor: const Color(0xFF1A1A20),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+              title: Text(
+                'Tahsilat Al: ${item['client_title']}',
+                style: const TextStyle(color: Colors.white, fontSize: 16),
+              ),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Kalan Borç: ₺${maxAmount.toStringAsFixed(2)}',
+                    style: const TextStyle(color: Colors.white70, fontSize: 13),
+                  ),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: amountController,
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
+                    style: const TextStyle(color: Colors.white),
+                    decoration: InputDecoration(
+                      labelText: 'Tahsil Edilecek Tutar (₺)',
+                      labelStyle: const TextStyle(color: Colors.white54),
+                      filled: true,
+                      fillColor: const Color(0xFF101014),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide.none,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text(
+                    'İptal',
+                    style: TextStyle(color: Colors.white54),
+                  ),
+                ),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF00ACC1),
+                  ),
+                  onPressed: isProcessing
+                      ? null
+                      : () async {
+                          final enteredAmount = double.tryParse(
+                            amountController.text.replaceAll(',', '.'),
+                          );
+                          if (enteredAmount == null || enteredAmount <= 0) {
+                            return;
+                          }
+
+                          setDialogState(() => isProcessing = true);
+
+                          try {
+                            final transactionId = item['id'].toString();
+
+                            if (enteredAmount >= maxAmount) {
+                              // Hepsini veya fazlasını ödiyorsa direkt kapat
+                              await supabase
+                                  .from('transactions')
+                                  .update({'is_paid': true})
+                                  .eq('id', transactionId);
+                            } else {
+                              // Kısmi ödeme yapılıyorsa: Mevcut borçtan ödenen tutarı düş ve güncelle
+                              final remainingAmount = maxAmount - enteredAmount;
+                              await supabase
+                                  .from('transactions')
+                                  .update({'amount': remainingAmount})
+                                  .eq('id', transactionId);
+                            }
+
+                            if (mounted) {
+                              Navigator.pop(context);
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('Tahsilat başarıyla işlendi!'),
+                                  backgroundColor: Colors.green,
+                                ),
+                              );
+                              _fetchOverduePayments();
+                            }
+                          } catch (e) {
+                            setDialogState(() => isProcessing = false);
+                            if (mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text(
+                                    'Tahsilat işlenirken hata oluştu.',
+                                  ),
+                                  backgroundColor: Colors.redAccent,
+                                ),
+                              );
+                            }
+                          }
+                        },
+                  child: isProcessing
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            color: Colors.white,
+                            strokeWidth: 2,
+                          ),
+                        )
+                      : const Text(
+                          'Tahsilatı Onayla',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                ),
+              ],
+            );
+          },
         );
-      }
-      _fetchOverduePayments();
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Tahsilat işlenirken hata oluştu.'),
-            backgroundColor: Colors.redAccent,
-          ),
-        );
-      }
-    }
+      },
+    );
   }
 
   Future<void> _sendWhatsAppReminder(
@@ -225,7 +339,7 @@ class _OverduePaymentsScreenState extends State<OverduePaymentsScreen> {
                   ),
                 ),
 
-                // LİSTE ALANI (DİKEY UZAMAYAN MODERN KARTLAR)
+                // LİSTE ALANI
                 Expanded(
                   child: _overdueList.isEmpty
                       ? const Center(
@@ -285,7 +399,6 @@ class _OverduePaymentsScreenState extends State<OverduePaymentsScreen> {
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  // 1. SATIR: İKON + MÜKELLEF ADI + TUTAR
                                   Row(
                                     crossAxisAlignment:
                                         CrossAxisAlignment.start,
@@ -376,8 +489,6 @@ class _OverduePaymentsScreenState extends State<OverduePaymentsScreen> {
                                     height: 1,
                                   ),
                                   const SizedBox(height: 12),
-
-                                  // 2. SATIR: VADE TARİHİ + HATIRLAT & TAHSİL ET BUTONLARI
                                   Row(
                                     mainAxisAlignment:
                                         MainAxisAlignment.spaceBetween,
@@ -429,9 +540,8 @@ class _OverduePaymentsScreenState extends State<OverduePaymentsScreen> {
                                           ),
                                           const SizedBox(width: 8),
                                           ElevatedButton.icon(
-                                            onPressed: () => _markAsPaid(
-                                              item['id'].toString(),
-                                            ),
+                                            onPressed: () =>
+                                                _showPaymentDialog(item),
                                             icon: const Icon(
                                               Icons.point_of_sale,
                                               color: Colors.white,
