@@ -300,9 +300,9 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                     ),
                     const SizedBox(height: 12),
-                    // İSTEDİĞİNİZ NHK YAZILIM GİRİŞ EKRANI İMZASI
+                    // İSTEDİĞİNİZ MHK YAZILIM GİRİŞ EKRANI İMZASI
                     const Text(
-                      '© 2026 Mükellef Takip Sistemi • NHK Yazılım & Teknolojileri',
+                      '© 2026 Mükellef Takip Sistemi • MHK Yazılım ',
                       style: TextStyle(color: Colors.white38, fontSize: 11),
                       textAlign: TextAlign.center,
                     ),
@@ -618,7 +618,7 @@ class _CompanyRegisterScreenState extends State<CompanyRegisterScreen> {
                 ),
                 const SizedBox(height: 14),
                 _buildTextField(
-                  'Ofis / Şirket Adı (Örn: NHK Muhasebe)',
+                  'Ofis / Şirket Adı (Örn: MHK Muhasebe)',
                   _companyNameController,
                   Icons.store,
                 ),

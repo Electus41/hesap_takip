@@ -98287,7 +98287,7 @@ case 6:case 1:return A.t(q,r)
 case 2:return A.r(o.at(-1),r)}})
 return A.u($async$jF,r)},
 H(a){var s=this,r=null,q=A.aC(a,r,t.w).w.a.a<500,p=q?16:0,o=q?24:40,n=A.an(16),m=A.dn(B.i.bh(0.05),1),l=A.b([new A.bT(0,B.aa,B.r.bh(0.5),B.U7,20)],t.G),k=A.Q4("assets/logo.png",new A.aAJ(),B.fG,110),j=A.eg(r,B.au,!1,r,!0,B.o,r,A.eD(),s.d,r,r,r,r,r,2,A.cI(r,new A.c7(4,A.an(12),B.k),r,r,r,r,r,r,!0,r,r,r,r,r,r,B.J,!0,r,r,r,r,r,r,r,r,r,r,r,r,r,r,r,r,r,r,r,r,r,r,B.aA,"E-Posta Adresi",!0,!0,!1,r,B.MN,r,r,r,r,r,r,r,r,r,r,r,r),B.B,!0,r,!0,r,!1,r,B.av,r,r,r,r,B.k8,r,r,r,1,r,r,!1,"\u2022",r,r,r,r,r,!1,r,r,!1,r,!0,r,B.aK,r,r,r,r,r,r,r,r,r,r,r,B.a5,!0,B.a4,r,B.aT,r,r,r,r),i=A.eg(r,B.au,!1,r,!0,B.o,r,A.eD(),s.e,r,r,r,r,r,2,A.cI(r,new A.c7(4,A.an(12),B.k),r,r,r,r,r,r,!0,r,r,r,r,r,r,B.J,!0,r,r,r,r,r,r,r,r,r,r,r,r,r,r,r,r,r,r,r,r,r,r,B.aA,"\u015eifre",!0,!0,!1,r,B.Nn,r,r,r,r,r,r,r,r,r,r,r,r),B.B,!0,r,!0,r,!1,r,B.av,r,r,r,r,r,r,r,r,1,r,r,!0,"\u2022",r,r,r,new A.aAK(s),r,!1,r,r,!1,r,!0,r,B.aK,r,r,r,r,r,r,r,r,r,r,r,B.a5,!0,B.a4,r,B.aT,r,r,r,r),h=t.p,g=A.bt(A.b([A.c4(new A.AY(s.f,new A.aAL(s),B.t,B.i,new A.bF(A.an(4),B.k),B.Fg,r),24,24),B.be,B.a4v],h),B.p,B.l,B.n,0),f=s.r?r:s.ganI(),e=A.e_(r,r,B.t,r,r,r,0,r,r,r,r,r,r,r,new A.bF(A.an(12),B.k),r,r,r,r,r)
-return A.hf(r,B.J,A.dX(A.hO(A.bm(r,A.be(A.b([k,B.aM,B.a4G,B.Dm,j,B.aM,i,B.aM,g,B.fg,A.c4(A.jG(s.r?B.nU:B.a52,f,e),50,1/0),B.dt,B.K8,B.cT,A.be(A.b([A.eQ(B.a5V,new A.aAM(a),r),A.eQ(B.a5K,new A.aAN(a),r),B.aF,B.a6F],h),B.p,B.l,B.n)],h),B.p,B.l,B.ad),B.q,r,r,new A.bd(B.a3,r,m,n,l,r,B.H),r,r,r,new A.a5(o,o,o,o),r,r,400),r,B.B,new A.a5(p,p,p,p),r,B.W),r,r),r,r)}}
+return A.hf(r,B.J,A.dX(A.hO(A.bm(r,A.be(A.b([k,B.aM,B.a4G,B.Dm,j,B.aM,i,B.aM,g,B.fg,A.c4(A.jG(s.r?B.nU:B.a51,f,e),50,1/0),B.dt,B.K8,B.cT,A.be(A.b([A.eQ(B.a5V,new A.aAM(a),r),A.eQ(B.a5K,new A.aAN(a),r),B.aF,B.a6r],h),B.p,B.l,B.n)],h),B.p,B.l,B.ad),B.q,r,r,new A.bd(B.a3,r,m,n,l,r,B.H),r,r,r,new A.a5(o,o,o,o),r,r,400),r,B.B,new A.a5(p,p,p,p),r,B.W),r,r),r,r)}}
 A.aAA.prototype={
 $1(a){var s=this.a.c
 if(s!=null)A.DU(s,A.e2(new A.aAz(),null,t.z))},
@@ -98429,8 +98429,8 @@ s=1
 break
 case 1:return A.t(q,r)}})
 return A.u($async$KR,r)},
-H(a){var s=this,r=null,q=A.aC(a,r,t.w).w.a.a<500,p=A.i6(r,r,B.D,r,0,B.bP,r,r,r),o=q?16:0,n=q?24:40,m=A.an(16),l=A.dn(B.i.bh(0.05),1),k=A.Q4("assets/logo.png",new A.avV(),B.fG,90),j=s.AA("Ad\u0131n\u0131z Soyad\u0131n\u0131z",s.r,B.LQ),i=s.AA("Ofis / \u015eirket Ad\u0131 (\xd6rn: NHK Muhasebe)",s.w,B.Md),h=s.AA("\xd6zel \u015eirket Kodu (Bo\u015fsa otomatik \xfcretilir)",s.x,B.Mo),g=s.AA("Kurumsal E-Posta Adresi",s.e,B.eQ),f=s.T_("Sistem \u015eifresi (En az 6 hane)",s.f,B.j2,!0),e=s.y?r:s.gaqB(),d=A.e_(r,r,B.t,r,r,r,r,r,r,r,r,r,r,r,new A.bF(A.an(12),B.k),r,r,r,r,r)
-return A.hf(p,B.J,A.dX(A.hO(A.bm(r,A.be(A.b([k,B.aM,B.a6A,B.fh,B.a4X,B.dt,j,B.bl,i,B.bl,h,B.bl,g,B.bl,f,B.fg,A.c4(A.jG(s.y?B.nU:B.a6b,e,d),50,1/0)],t.p),B.p,B.l,B.ad),B.q,r,r,new A.bd(B.a3,r,l,m,r,r,B.H),r,r,r,new A.a5(n,n,n,n),r,r,400),r,B.B,new A.a5(o,o,o,o),r,B.W),r,r),r,r)},
+H(a){var s=this,r=null,q=A.aC(a,r,t.w).w.a.a<500,p=A.i6(r,r,B.D,r,0,B.bP,r,r,r),o=q?16:0,n=q?24:40,m=A.an(16),l=A.dn(B.i.bh(0.05),1),k=A.Q4("assets/logo.png",new A.avV(),B.fG,90),j=s.AA("Ad\u0131n\u0131z Soyad\u0131n\u0131z",s.r,B.LQ),i=s.AA("Ofis / \u015eirket Ad\u0131 (\xd6rn: MHK Muhasebe)",s.w,B.Md),h=s.AA("\xd6zel \u015eirket Kodu (Bo\u015fsa otomatik \xfcretilir)",s.x,B.Mo),g=s.AA("Kurumsal E-Posta Adresi",s.e,B.eQ),f=s.T_("Sistem \u015eifresi (En az 6 hane)",s.f,B.j2,!0),e=s.y?r:s.gaqB(),d=A.e_(r,r,B.t,r,r,r,r,r,r,r,r,r,r,r,new A.bF(A.an(12),B.k),r,r,r,r,r)
+return A.hf(p,B.J,A.dX(A.hO(A.bm(r,A.be(A.b([k,B.aM,B.a6B,B.fh,B.a4W,B.dt,j,B.bl,i,B.bl,h,B.bl,g,B.bl,f,B.fg,A.c4(A.jG(s.y?B.nU:B.a6b,e,d),50,1/0)],t.p),B.p,B.l,B.ad),B.q,r,r,new A.bd(B.a3,r,l,m,r,r,B.H),r,r,r,new A.a5(n,n,n,n),r,r,400),r,B.B,new A.a5(o,o,o,o),r,B.W),r,r),r,r)},
 T_(a,b,c,d){var s=null,r=A.e0(c,B.di,s,s)
 return A.eg(s,B.au,!1,s,!0,B.o,s,A.eD(),b,s,s,s,s,s,2,A.cI(s,new A.c7(4,A.an(12),B.k),s,s,s,s,s,s,!0,s,s,s,s,s,s,B.J,!0,s,s,s,s,s,s,s,s,s,s,s,s,s,s,s,s,s,s,s,s,s,s,B.bA,a,!0,!0,!1,s,r,s,s,s,s,s,s,s,s,s,s,s,s),B.B,!0,s,!0,s,!1,s,B.av,s,s,s,s,s,s,s,s,1,s,s,d,"\u2022",s,s,s,s,s,!1,s,s,!1,s,!0,s,B.aK,s,s,s,s,s,s,s,s,s,s,s,B.a5,!0,B.a4,s,B.aT,s,s,s,s)},
 AA(a,b,c){return this.T_(a,b,c,!1)}}
@@ -98445,8 +98445,8 @@ $0(){return this.a.y=!1},
 $S:0}
 A.avU.prototype={
 $1(a){var s=null,r=A.an(16),q=A.a6(this.a+" ba\u015far\u0131yla olu\u015fturuldu.",s,s,s,s,B.a0q,s,s,s),p=A.an(12),o=A.dn(B.t,1),n=this.b,m=t.p
-p=A.be(A.b([q,B.hP,B.a5a,B.cT,A.bm(s,A.bt(A.b([A.a6(n,s,s,s,s,B.E_,s,s,s),A.eJ(s,s,s,B.mE,s,s,new A.avS(n,a),s,s,s,s)],m),B.p,B.bT,B.n,0),B.q,s,s,new A.bd(B.J,s,o,p,s,s,B.H),s,s,s,B.iJ,s,s,s),B.aF,B.a6t],m),B.Z,B.l,B.ad)
-return A.iO(A.b([A.jG(B.a4U,new A.avT(a),A.e_(s,s,B.t,s,s,s,s,s,s,s,s,s,s,s,s,s,s,s,s,s))],m),B.a3,p,s,new A.bF(r,B.k),B.WN)},
+p=A.be(A.b([q,B.hP,B.a59,B.cT,A.bm(s,A.bt(A.b([A.a6(n,s,s,s,s,B.E_,s,s,s),A.eJ(s,s,s,B.mE,s,s,new A.avS(n,a),s,s,s,s)],m),B.p,B.bT,B.n,0),B.q,s,s,new A.bd(B.J,s,o,p,s,s,B.H),s,s,s,B.iJ,s,s,s),B.aF,B.a6u],m),B.Z,B.l,B.ad)
+return A.iO(A.b([A.jG(B.a4T,new A.avT(a),A.e_(s,s,B.t,s,s,s,s,s,s,s,s,s,s,s,s,s,s,s,s,s))],m),B.a3,p,s,new A.bF(r,B.k),B.WN)},
 $S:73}
 A.avS.prototype={
 $0(){A.nX(new A.kz(this.a))
@@ -98519,7 +98519,7 @@ case 6:case 1:return A.t(q,r)
 case 2:return A.r(o.at(-1),r)}})
 return A.u($async$rZ,r)},
 H(a){var s=this,r=null,q=A.aC(a,r,t.w).w.a.a<500,p=A.i6(r,r,B.D,r,0,B.bP,r,r,r),o=q?16:0,n=q?24:40,m=A.an(16),l=A.dn(B.i.bh(0.05),1),k=A.Q4("assets/logo.png",new A.aCP(),B.fG,90),j=s.HM("Ad\u0131n\u0131z Soyad\u0131n\u0131z",s.e,B.dU),i=s.HM("E-Posta Adresiniz",s.f,B.eQ),h=s.SR("\u015eifre Belirleyin",s.r,B.j2,!0),g=s.HM("\u015eirket Davet Kodu (\xd6rn: MHK_1234)",s.w,B.rt),f=s.x?r:s.gaqC(),e=A.e_(r,r,B.t,r,r,r,r,r,r,r,r,r,r,r,new A.bF(A.an(12),B.k),r,r,r,r,r)
-return A.hf(p,B.J,A.dX(A.hO(A.bm(r,A.be(A.b([k,B.aM,B.a6f,B.fh,B.a6z,B.fg,j,B.bl,i,B.bl,h,B.bl,g,B.fg,A.c4(A.jG(s.x?B.nU:B.a5y,f,e),50,1/0)],t.p),B.p,B.l,B.ad),B.q,r,r,new A.bd(B.a3,r,l,m,r,r,B.H),r,r,r,new A.a5(n,n,n,n),r,r,400),r,B.B,new A.a5(o,o,o,o),r,B.W),r,r),r,r)},
+return A.hf(p,B.J,A.dX(A.hO(A.bm(r,A.be(A.b([k,B.aM,B.a6f,B.fh,B.a6A,B.fg,j,B.bl,i,B.bl,h,B.bl,g,B.fg,A.c4(A.jG(s.x?B.nU:B.a5y,f,e),50,1/0)],t.p),B.p,B.l,B.ad),B.q,r,r,new A.bd(B.a3,r,l,m,r,r,B.H),r,r,r,new A.a5(n,n,n,n),r,r,400),r,B.B,new A.a5(o,o,o,o),r,B.W),r,r),r,r)},
 SR(a,b,c,d){var s=null,r=A.e0(c,B.di,s,s)
 return A.eg(s,B.au,!1,s,!0,B.o,s,A.eD(),b,s,s,s,s,s,2,A.cI(s,new A.c7(4,A.an(12),B.k),s,s,s,s,s,s,!0,s,s,s,s,s,s,B.J,!0,s,s,s,s,s,s,s,s,s,s,s,s,s,s,s,s,s,s,s,s,s,s,B.bA,a,!0,!0,!1,s,r,s,s,s,s,s,s,s,s,s,s,s,s),B.B,!0,s,!0,s,!1,s,B.av,s,s,s,s,s,s,s,s,1,s,s,d,"\u2022",s,s,s,s,s,!1,s,s,!1,s,!0,s,B.aK,s,s,s,s,s,s,s,s,s,s,s,B.a5,!0,B.a4,s,B.aT,s,s,s,s)},
 HM(a,b,c){return this.SR(a,b,c,!1)}}
@@ -98717,7 +98717,7 @@ e.push(d.vK("\xd6zel A\xe7\u0131klama (Bo\u015f b\u0131rak\u0131l\u0131rsa kalem
 g=A.hO(A.c4(A.be(e,B.p,B.l,B.ad),n,g),n,B.B,n,n,B.W)
 e=A.eQ(B.d8,new A.avv(a),n)
 i=c.d?n:new A.avw(c,d,s,a,b,r,i)
-return A.iO(A.b([e,A.jG(B.a6u,i,A.e_(n,n,B.t,n,n,n,n,n,n,n,n,n,n,n,n,n,n,n,n,n))],f),B.a3,g,new A.a5(k,24,k,24),new A.bF(j,B.k),h)},
+return A.iO(A.b([e,A.jG(B.a6v,i,A.e_(n,n,B.t,n,n,n,n,n,n,n,n,n,n,n,n,n,n,n,n,n))],f),B.a3,g,new A.a5(k,24,k,24),new A.bF(j,B.k),h)},
 $S:46}
 A.avs.prototype={
 $1(a){var s=null,r=J.aw(a.h(0,"id"))
@@ -98910,62 +98910,62 @@ break
 case 6:case 1:return A.t(q,r)
 case 2:return A.r(o.at(-1),r)}})
 return A.u($async$AC,r)},
-e3(){var s=0,r=A.v(t.H),q,p=2,o=[],n=this,m,l,k,j,i,h,g,f,e,d,c,b,a,a0,a1,a2,a3,a4,a5,a6,a7,a8,a9,b0,b1,b2,b3,b4,b5,b6,b7,b8,b9,c0,c1,c2,c3,c4,c5,c6,c7,c8,c9,d0,d1,d2
-var $async$e3=A.q(function(d4,d5){if(d4===1){o.push(d5)
+e3(){var s=0,r=A.v(t.H),q,p=2,o=[],n=this,m,l,k,j,i,h,g,f,e,d,c,b,a,a0,a1,a2,a3,a4,a5,a6,a7,a8,a9,b0,b1,b2,b3,b4,b5,b6,b7,b8,b9,c0,c1,c2,c3,c4,c5,c6,c7,c8,c9,d0,d1,d2,d3,d4
+var $async$e3=A.q(function(d6,d7){if(d6===1){o.push(d7)
 s=p}for(;;)switch(s){case 0:p=4
-b3={}
-b4=n.CW
-b5=b4.gdJ().e.a
-m=b5==null?null:b5.r
-if(m==null){b4=n.c
-if(b4!=null)A.DU(b4,A.e2(new A.asv(),null,t.z))
+b4={}
+b5=n.CW
+b6=b5.gdJ().e.a
+m=b6==null?null:b6.r
+if(m==null){b5=n.c
+if(b5!=null)A.DU(b5,A.e2(new A.asv(),null,t.z))
 s=1
 break}s=7
-return A.n(b4.ba("profiles").ey("full_name, role, company_id, companies(*)").c1("id",m.a).kp(0),$async$e3)
-case 7:l=d5
-b5=J.ay(l,"full_name")
-n.e=b5==null?"Kullan\u0131c\u0131":b5
-b5=J.ay(l,"role")
-n.r=b5==null?"personel":b5
+return A.n(b5.ba("profiles").ey("full_name, role, company_id, companies(*)").c1("id",m.a).kp(0),$async$e3)
+case 7:l=d7
+b6=J.ay(l,"full_name")
+n.e=b6==null?"Kullan\u0131c\u0131":b6
+b6=J.ay(l,"role")
+n.r=b6==null?"personel":b6
 n.w=J.aw(J.ay(l,"company_id"))
 k=t.nA.a(J.ay(l,"companies"))
-if(k!=null){b5=k.h(0,"name")
-if(b5==null)b5="M\xfckellef Takip"}else b5="M\xfckellef Takip"
-n.f=b5
-b3.a=!1
-b3.b=365
-b5=b3.c="Kurumsal Lisans"
+if(k!=null){b6=k.h(0,"name")
+if(b6==null)b6="M\xfckellef Takip"}else b6="M\xfckellef Takip"
+n.f=b6
+b4.a=!1
+b4.b=365
+b6=b4.c="Kurumsal Lisans"
 if(k!=null){j=!J.d(k.h(0,"is_active"),!1)
-b6=k.h(0,"plan_type")
-b3.c=J.aw(b6==null?b5:b6)
-if(!j){b3.a=!0
-b3.b=0}else if(k.h(0,"license_end_date")!=null)try{i=A.jB(J.aw(k.h(0,"license_end_date")))
+b7=k.h(0,"plan_type")
+b4.c=J.aw(b7==null?b6:b7)
+if(!j){b4.a=!0
+b4.b=0}else if(k.h(0,"license_end_date")!=null)try{i=A.jB(J.aw(k.h(0,"license_end_date")))
 h=B.f.cD(i.fR(new A.bO(Date.now(),0,!1)).a,864e8)
-b3.b=h
-if(h<0)b3.a=!0}catch(d3){}}s=8
-return A.n(b4.ba("clients").ij().c1("company_id",n.w),$async$e3)
-case 8:g=d5
-b5=t.a
-f=A.cW(g,!0,b5)
-b6=t.N
-e=A.w(b6,b6)
+b4.b=h
+if(h<0)b4.a=!0}catch(d5){}}s=8
+return A.n(b5.ba("clients").ij().c1("company_id",n.w),$async$e3)
+case 8:g=d7
+b6=t.a
+f=A.cW(g,!0,b6)
+b7=t.N
+e=A.w(b7,b7)
 d=A.b([],t.s)
-for(b8=f,b9=b8.length,c0=0;c0<b8.length;b8.length===b9||(0,A.E)(b8),++c0){c=b8[c0]
+for(b9=f,c0=b9.length,c1=0;c1<b9.length;b9.length===c0||(0,A.E)(b9),++c1){c=b9[c1]
 b=J.aw(J.ay(c,"id"))
-c1=J.ay(c,"title")
-J.fN(e,b,J.aw(c1==null?"M\xfckellef":c1))
-if(!J.d(J.ay(c,"is_active"),!1))J.dJ(d,b)}b8=t.d
-a=A.b([],b8)
+c2=J.ay(c,"title")
+J.fN(e,b,J.aw(c2==null?"M\xfckellef":c2))
+if(!J.d(J.ay(c,"is_active"),!1))J.dJ(d,b)}b9=t.d
+a=A.b([],b9)
 p=10
 s=13
-return A.n(b4.ba("transactions").ey("*, clients(title)").c1("company_id",n.w).fU("created_at",!1),$async$e3)
-case 13:a0=d5
-a=A.cW(a0,!0,b5)
+return A.n(b5.ba("transactions").ey("*, clients(title)").c1("company_id",n.w).fU("created_at",!1),$async$e3)
+case 13:a0=d7
+a=A.cW(a0,!0,b6)
 p=4
 s=12
 break
 case 10:p=9
-d0=o.pop()
+d2=o.pop()
 s=12
 break
 case 9:s=4
@@ -98973,21 +98973,21 @@ break
 case 12:s=e.a!==0?14:15
 break
 case 14:p=17
-b4=b4.ba("transactions").ij()
-b5=e
-b9=A.k(b5).i("bo<1>")
-b5=A.a4(new A.bo(b5,b9),b9.i("I.E"))
+b5=b5.ba("transactions").ij()
+b6=e
+c0=A.k(b6).i("bo<1>")
+b6=A.a4(new A.bo(b6,c0),c0.i("I.E"))
 s=20
-return A.n(b4.Og("client_id",b5).fU("created_at",!1),$async$e3)
-case 20:a1=d5
-b4=a
-a2=new A.a3(b4,new A.asw(),A.W(b4).i("a3<1,l>")).fF(0)
-for(b4=J.bB(a1);b4.u();){a3=b4.gO()
+return A.n(b5.Og("client_id",b6).fU("created_at",!1),$async$e3)
+case 20:a1=d7
+b5=a
+a2=new A.a3(b5,new A.asw(),A.W(b5).i("a3<1,l>")).fF(0)
+for(b5=J.bB(a1);b5.u();){a3=b5.gO()
 if(!J.Aa(a2,J.aw(J.ay(a3,"id"))))J.dJ(a,a3)}p=4
 s=19
 break
 case 17:p=16
-d1=o.pop()
+d3=o.pop()
 s=19
 break
 case 16:s=4
@@ -98996,49 +98996,53 @@ case 19:case 15:s=J.bM(d)!==0&&J.bM(a)!==0?21:22
 break
 case 21:s=23
 return A.n(n.AC(d,a),$async$e3)
-case 23:case 22:b3.d=b3.e=0
-a4=A.b([],b8)
-a5=new A.bO(Date.now(),0,!1)
-a6=a5.Hx(2592e8)
-for(b4=a,b5=b4.length,b8=t.f,b9=t.z,c0=0;c0<b4.length;b4.length===b5||(0,A.E)(b4),++c0){a7=b4[c0]
-c2=A.eN(J.aw(J.ay(a7,"amount")))
-a8=c2==null?0:c2
-a9=J.d(J.ay(a7,"is_paid"),!0)
-b0="M\xfckellef"
-if(J.ay(a7,"clients")!=null&&b8.b(J.ay(a7,"clients"))){c1=J.ay(J.ay(a7,"clients"),"title")
-c3=c1==null?null:J.aw(c1)
-b0=c3==null?"M\xfckellef":c3}else if(J.ay(a7,"client_id")!=null&&e.aq(J.aw(J.ay(a7,"client_id")))){c1=J.ay(e,J.aw(J.ay(a7,"client_id")))
-c1.toString
-b0=c1}if(a9)b3.d=b3.d+a8
-else{b3.e=b3.e+a8
-if(J.ay(a7,"due_date")!=null)try{b1=A.jB(J.aw(J.ay(a7,"due_date")))
-c1=b1
-c4=a6
-c5=c1.a
-c6=c4.a
-if(c5>=c6)c1=c5===c6&&c1.b<c4.b
-else c1=!0
-if(c1){c1=J.ay(a7,"description")
-if(c1==null)c1="Belirtilmemi\u015f \u0130\u015flem"
-c4=b0
-c5=b1
-c6=A.bn(A.aD(a5),A.aW(a5),A.bR(a5),0,0,0,0)
+case 23:case 22:a4=0
+b4.d=0
+a5=A.b([],b9)
+a6=new A.bO(Date.now(),0,!1)
+a7=a6.Hx(2592e8)
+for(b5=a,b6=b5.length,b9=t.f,c0=t.z,c1=0;c1<b5.length;b5.length===b6||(0,A.E)(b5),++c1){a8=b5[c1]
+c3=A.eN(J.aw(J.ay(a8,"amount")))
+a9=c3==null?0:c3
+b0=J.d(J.ay(a8,"is_paid"),!0)
+b1="M\xfckellef"
+if(J.ay(a8,"clients")!=null&&b9.b(J.ay(a8,"clients"))){c2=J.ay(J.ay(a8,"clients"),"title")
+c4=c2==null?null:J.aw(c2)
+b1=c4==null?"M\xfckellef":c4}else if(J.ay(a8,"client_id")!=null&&e.aq(J.aw(J.ay(a8,"client_id")))){c2=J.ay(e,J.aw(J.ay(a8,"client_id")))
+c2.toString
+b1=c2}if(b0)b4.d=b4.d+a9
+else{a4+=a9
+if(J.ay(a8,"due_date")!=null)try{b2=A.jB(J.aw(J.ay(a8,"due_date")))
+c2=b2
+c5=a7
+c6=c2.a
 c7=c5.a
+if(c6>=c7)c2=c6===c7&&c2.b<c5.b
+else c2=!0
+if(c2){c2=J.ay(a8,"description")
+if(c2==null)c2="Belirtilmemi\u015f \u0130\u015flem"
+c5=b1
+c6=b2
+c7=A.bn(A.aD(a6),A.aW(a6),A.bR(a6),0,0,0,0)
 c8=c6.a
-if(c7>=c8)c5=c7===c8&&c5.b<c6.b
-else c5=!0
-J.dJ(a4,A.a2(["amount",a8,"description",c1,"due_date",b1,"client",c4,"is_overdue",c5],b6,b9))}}catch(d3){}}}J.ME(a4,new A.asx())
-b4=a
-b4=A.hi(b4,0,A.pY(5,"count",t.S),A.W(b4).c)
-b5=b4.$ti.i("a3<au.E,ao<l,@>>")
-c9=A.a4(new A.a3(b4,new A.asy(e),b5),b5.i("au.E"))
-b2=c9
-if(n.c!=null)n.K(new A.asz(b3,n,f,a4,b2))
+c9=c7.a
+if(c8>=c9)c6=c8===c9&&c6.b<c7.b
+else c6=!0
+J.dJ(a5,A.a2(["amount",a9,"description",c2,"due_date",b2,"client",c5,"is_overdue",c6],b7,c0))}}catch(d5){}}}d0=a4-b4.d
+b4.e=d0
+if(d0<0)b4.e=0
+J.ME(a5,new A.asx())
+b5=a
+b5=A.hi(b5,0,A.pY(5,"count",t.S),A.W(b5).c)
+b6=b5.$ti.i("a3<au.E,ao<l,@>>")
+d1=A.a4(new A.a3(b5,new A.asy(e),b6),b6.i("au.E"))
+b3=d1
+if(n.c!=null)n.K(new A.asz(b4,n,f,a5,b3))
 p=2
 s=6
 break
 case 4:p=3
-d2=o.pop()
+d4=o.pop()
 if(n.c!=null)n.K(new A.asA(n))
 s=6
 break
@@ -99107,7 +99111,7 @@ else n=q?l.adH(p):l.adO(p)
 o.push(A.bC(n,1))
 return A.hf(s,B.J,A.bt(o,B.Z,B.l,B.n,0),r,k)},
 adO(a){var s=this,r=null,q=A.an(16),p=A.b([new A.bT(0,B.aa,B.t.bh(0.2),B.na,12)],t.G),o=t.p
-o=A.b([A.bm(r,A.be(A.b([A.a6("CANLI OF\u0130S & F\u0130NANS \xd6ZET\u0130",r,r,r,r,A.dM(r,r,B.i.bh(0.8),r,r,r,r,r,r,r,r,11,r,r,B.Q,r,r,!0,r,1.2,r,r,r,r,r,r),r,r,r),B.nT,A.bt(A.b([A.bC(A.be(A.b([A.a6(B.f.j(s.as),r,r,r,r,B.a1k,r,r,r),B.c4,B.a5J],o),B.p,B.l,B.n),1),A.bm(r,r,B.q,B.iq,r,r,r,36,r,r,r,r,1),A.bC(A.be(A.b([A.aaw(A.a6(a.c4(s.at),r,r,r,r,B.a2D,r,r,r),B.i7),B.c4,B.a5_],o),B.p,B.l,B.n),1),A.bm(r,r,B.q,B.iq,r,r,r,36,r,r,r,r,1),A.bC(A.be(A.b([A.aaw(A.a6(a.c4(s.ax),r,r,r,r,B.a1o,r,r,r),B.i7),B.c4,B.a6x],o),B.p,B.l,B.n),1)],o),B.p,B.n1,B.n,0)],o),B.p,B.l,B.n),B.q,r,r,new A.bd(r,r,r,q,p,B.Ot,B.H),r,r,r,B.L1,r,r,1/0),B.nT,s.nk(B.mw,B.ay,new A.ase(s),"M\xfckellef Y\xf6netimi"),s.nk(B.rg,B.cf,new A.asf(s),"G\xf6rev & \u0130\u015f Takibi"),s.nk(B.mz,B.To,s.gYV(),"Toplu Tahakkuk (Bor\xe7 Yans\u0131t)"),s.nk(B.my,B.Tq,new A.asg(s),"Kasa & G\xfcn Sonu Hareketleri"),s.nk(B.mC,B.y,new A.ash(s),"Geciken \xd6demeler & Ekstre"),s.nk(B.j1,B.t,new A.asi(s),"Dijital Evrak Ar\u015fivi"),s.nk(B.rr,B.Tp,new A.asj(s),"M\xfckellef Cari Ekstre & Raporlar")],o)
+o=A.b([A.bm(r,A.be(A.b([A.a6("CANLI OF\u0130S & F\u0130NANS \xd6ZET\u0130",r,r,r,r,A.dM(r,r,B.i.bh(0.8),r,r,r,r,r,r,r,r,11,r,r,B.Q,r,r,!0,r,1.2,r,r,r,r,r,r),r,r,r),B.nT,A.bt(A.b([A.bC(A.be(A.b([A.a6(B.f.j(s.as),r,r,r,r,B.a1k,r,r,r),B.c4,B.a5J],o),B.p,B.l,B.n),1),A.bm(r,r,B.q,B.iq,r,r,r,36,r,r,r,r,1),A.bC(A.be(A.b([A.aaw(A.a6(a.c4(s.at),r,r,r,r,B.a2D,r,r,r),B.i7),B.c4,B.a4Z],o),B.p,B.l,B.n),1),A.bm(r,r,B.q,B.iq,r,r,r,36,r,r,r,r,1),A.bC(A.be(A.b([A.aaw(A.a6(a.c4(s.ax),r,r,r,r,B.a1o,r,r,r),B.i7),B.c4,B.a6y],o),B.p,B.l,B.n),1)],o),B.p,B.n1,B.n,0)],o),B.p,B.l,B.n),B.q,r,r,new A.bd(r,r,r,q,p,B.Ot,B.H),r,r,r,B.L1,r,r,1/0),B.nT,s.nk(B.mw,B.ay,new A.ase(s),"M\xfckellef Y\xf6netimi"),s.nk(B.rg,B.cf,new A.asf(s),"G\xf6rev & \u0130\u015f Takibi"),s.nk(B.mz,B.To,s.gYV(),"Toplu Tahakkuk (Bor\xe7 Yans\u0131t)"),s.nk(B.my,B.Tq,new A.asg(s),"Kasa & G\xfcn Sonu Hareketleri"),s.nk(B.mC,B.y,new A.ash(s),"Geciken \xd6demeler & Ekstre"),s.nk(B.j1,B.t,new A.asi(s),"Dijital Evrak Ar\u015fivi"),s.nk(B.rr,B.Tp,new A.asj(s),"M\xfckellef Cari Ekstre & Raporlar")],o)
 if(s.r==="admin")o.push(s.nk(B.hc,B.Tr,new A.ask(s),"Ekip Y\xf6netimi (Personeller)"))
 o.push(B.dt)
 o.push(B.a6G)
@@ -99126,7 +99130,7 @@ return A.hO(A.be(A.b([A.bt(A.b([o,A.bt(A.b([m,B.ff,A.hH(!1,p,!0,A.v8(B.t,A.a6(q.
 SW(a){var s,r,q=null
 if(this.ay.length===0){s=a?32:20
 r=A.an(16)
-return A.bm(q,B.a5j,B.q,q,q,new A.bd(B.a3,q,A.dn(B.i.bh(0.05),1),r,q,q,B.H),q,q,q,new A.a5(s,s,s,s),q,q,1/0)}s=A.an(16)
+return A.bm(q,B.a5i,B.q,q,q,new A.bd(B.a3,q,A.dn(B.i.bh(0.05),1),r,q,q,B.H),q,q,q,new A.a5(s,s,s,s),q,q,1/0)}s=A.an(16)
 r=A.dn(B.i.bh(0.05),1)
 return A.bm(q,A.aLo(new A.asl(this,a),this.ay.length,B.yj,new A.asm(),!0),B.q,q,q,new A.bd(B.a3,q,r,s,q,q,B.H),q,q,q,q,q,q,q)},
 SY(){var s,r,q,p,o,n,m=this,l=null,k=A.Q4("assets/logo.png",new A.ast(),B.fG,38),j=m.f,i=t.p
@@ -99138,7 +99142,7 @@ q=m.rt(B.rg,3,"G\xf6rev & \u0130\u015f Takibi")
 p=m.rt(B.rr,4,"Cari Ekstre & Rapor")
 o=A.an(12)
 n=A.dn(B.t.bh(0.3),1)
-i=A.b([new A.bk(B.h5,j,l),B.dO,B.cT,k,s,r,q,p,B.k4,A.bm(l,A.be(A.b([A.bt(A.b([B.Ns,B.be,A.bC(A.a6(m.Q,l,B.a9,l,l,B.DZ,l,l,l),1)],i),B.p,B.l,B.n,0),B.c4,A.a6("Kalan S\xfcre: "+m.z+" G\xfcn",l,l,l,l,B.a33,l,l,l),B.K9,B.a4O],i),B.Z,B.l,B.n),B.q,l,l,new A.bd(B.J,l,n,o,l,l,B.H),l,l,B.lJ,B.iI,l,l,l),B.dO],i)
+i=A.b([new A.bk(B.h5,j,l),B.dO,B.cT,k,s,r,q,p,B.k4,A.bm(l,A.be(A.b([A.bt(A.b([B.Ns,B.be,A.bC(A.a6(m.Q,l,B.a9,l,l,B.DZ,l,l,l),1)],i),B.p,B.l,B.n,0),B.c4,A.a6("Kalan S\xfcre: "+m.z+" G\xfcn",l,l,l,l,B.a33,l,l,l),B.K9,B.a5x],i),B.Z,B.l,B.n),B.q,l,l,new A.bd(B.J,l,n,o,l,l,B.H),l,l,B.lJ,B.iI,l,l,l),B.dO],i)
 if(m.r==="admin")i.push(m.rt(B.Mc,5,"\u015eirket Ayarlar\u0131"))
 i.push(A.hH(!1,l,!0,A.bm(l,B.WS,B.q,l,l,l,l,l,l,B.L9,l,l,l),l,!0,l,l,l,l,l,l,l,l,l,l,m.gYY(),l,l,l,l,l))
 i.push(B.aF)
@@ -99835,7 +99839,7 @@ r=A.bC(A.jE(o,B.b7,!0,q,new A.axS(n),B.a5,r,t.N),1)
 q=n.f
 p=q?m:n.ga_B()
 o=q?B.Dn:B.rA
-r=A.bt(A.b([B.MB,B.ds,B.a55,B.ff,r,B.ff,A.jH(o,A.a6(q?l:k,m,m,m,m,B.ag,m,m,m),p,A.e_(m,m,B.t,m,m,m,m,m,m,m,m,m,B.qE,m,new A.bF(A.an(12),B.k),m,m,m,m,m))],t.p),B.p,B.l,B.n,0)}s=A.bm(m,r,B.q,m,m,B.p9,m,m,m,new A.a5(s,s,s,s),m,m,1/0)
+r=A.bt(A.b([B.MB,B.ds,B.a54,B.ff,r,B.ff,A.jH(o,A.a6(q?l:k,m,m,m,m,B.ag,m,m,m),p,A.e_(m,m,B.t,m,m,m,m,m,m,m,m,m,B.qE,m,new A.bF(A.an(12),B.k),m,m,m,m,m))],t.p),B.p,B.l,B.n,0)}s=A.bm(m,r,B.q,m,m,B.p9,m,m,m,new A.a5(s,s,s,s),m,m,1/0)
 r=n.y.length
 if(r===0)r=B.Hy
 else{q=j?16:24
@@ -100100,7 +100104,7 @@ r=A.an(12)
 q=A.an(12)
 p=t.p
 i=A.hO(A.c4(A.be(A.b([B.a5Q,B.aM,g,B.bl,d,B.bl,s,B.bl,A.hH(!1,r,!0,A.bm(n,A.bt(A.b([B.Nq,B.ds,A.bC(A.a6("\u0130\u015flem Tarihi: "+A.e9("dd.MM.yyyy",n).c4(h.b)+" (De\u011fi\u015ftirmek i\xe7in dokunun)",n,n,n,n,B.E0,n,n,n),1)],p),B.p,B.l,B.n,0),B.q,n,n,new A.bd(B.J,n,n,q,n,n,B.H),n,n,n,B.qA,n,n,n),n,!0,n,n,n,n,n,n,n,n,n,n,new A.auU(h,a,b),n,n,n,n,n)],p),B.Z,B.l,B.ad),n,i),n,B.B,n,n,B.W)
-h=h.c?A.b([B.UZ],p):A.b([A.eQ(B.d8,new A.auV(a),n),A.jH(B.N1,B.a50,new A.auW(h,e,c,f,a,b),A.e_(n,n,B.ay,n,n,n,n,n,n,n,n,n,n,n,new A.bF(A.an(12),B.k),n,n,n,n,n))],p)
+h=h.c?A.b([B.UZ],p):A.b([A.eQ(B.d8,new A.auV(a),n),A.jH(B.N1,B.a5_,new A.auW(h,e,c,f,a,b),A.e_(n,n,B.ay,n,n,n,n,n,n,n,n,n,n,n,new A.bF(A.an(12),B.k),n,n,n,n,n))],p)
 return A.iO(h,B.a3,i,new A.a5(k,24,k,24),new A.bF(j,B.k),B.WJ)},
 $S:46}
 A.auS.prototype={
@@ -100189,7 +100193,7 @@ o=A.an(12)
 n=A.an(12)
 m=t.p
 f=A.hO(A.c4(A.be(A.b([d,B.bl,r,B.bl,p,B.bl,A.hH(!1,o,!0,A.bm(k,A.bt(A.b([B.Nc,B.ds,A.bC(A.a6("Masraf Tarihi: "+A.e9("dd.MM.yyyy",k).c4(e.b)+" (De\u011fi\u015ftirmek i\xe7in dokunun)",k,k,k,k,B.E0,k,k,k),1)],m),B.p,B.l,B.n,0),B.q,k,k,new A.bd(B.J,k,k,n,k,k,B.H),k,k,k,B.qA,k,k,k),k,!0,k,k,k,k,k,k,k,k,k,k,new A.auJ(e,a,b),k,k,k,k,k)],m),B.p,B.l,B.ad),k,f),k,B.B,k,k,B.W)
-e=e.c?A.b([B.V_],m):A.b([A.eQ(B.d8,new A.auK(a),k),A.jH(B.rD,B.a5q,new A.auL(e,l.b,q,s,a,b),A.e_(k,k,B.y,k,k,k,k,k,k,k,k,k,k,k,new A.bF(A.an(12),B.k),k,k,k,k,k))],m)
+e=e.c?A.b([B.V_],m):A.b([A.eQ(B.d8,new A.auK(a),k),A.jH(B.rD,B.a5p,new A.auL(e,l.b,q,s,a,b),A.e_(k,k,B.y,k,k,k,k,k,k,k,k,k,k,k,new A.bF(A.an(12),B.k),k,k,k,k,k))],m)
 return A.iO(e,B.a3,f,new A.a5(h,24,h,24),new A.bF(g,B.k),B.WR)},
 $S:46}
 A.auI.prototype={
@@ -100422,11 +100426,11 @@ return A.u($async$wL,r)},
 ai5(a){if(a==="monthly")return"Ayl\u0131k D\xfczenli"
 if(a==="yearly")return"Y\u0131ll\u0131k D\xfczenli"
 return"1 Defal\u0131k"},
-H(a){var s,r,q,p,o=this,n=null,m=A.DX(n,"tr_TR","\u20ba"),l=A.aC(a,n,t.w).w.a.a<600,k=A.i6(n,n,B.bE,n,0,B.bP,n,n,B.a4S)
+H(a){var s,r,q,p,o=this,n=null,m=A.DX(n,"tr_TR","\u20ba"),l=A.aC(a,n,t.w).w.a.a<600,k=A.i6(n,n,B.bE,n,0,B.bP,n,n,B.a4R)
 if(o.e)s=B.bN
 else{s=l?20:28
 r=t.p
-s=A.bm(n,A.be(A.b([B.a54,B.cT,A.a6(m.c4(o.r),n,n,n,n,B.a2Q,n,n,n),B.fh,A.a6("Bekleyen \u0130\u015flem Say\u0131s\u0131: "+o.f.length,n,n,n,n,B.bA,n,n,n)],r),B.p,B.l,B.n),B.q,n,n,B.p9,n,n,n,new A.a5(16,s,16,s),n,n,1/0)
+s=A.bm(n,A.be(A.b([B.a53,B.cT,A.a6(m.c4(o.r),n,n,n,n,B.a2Q,n,n,n),B.fh,A.a6("Bekleyen \u0130\u015flem Say\u0131s\u0131: "+o.f.length,n,n,n,n,B.bA,n,n,n)],r),B.p,B.l,B.n),B.q,n,n,B.p9,n,n,n,new A.a5(16,s,16,s),n,n,1/0)
 q=o.f.length
 if(q===0)q=B.Hs
 else{p=l?16:24
@@ -100739,8 +100743,8 @@ n=A.bt(A.b([A.bC(j.rw("\u0130leti\u015fim Telefonu",j.Q,B.mx),1),B.jZ,A.bC(j.rw(
 m=j.Ty("Resmi \u015eirket Adresi",j.at,B.rn,2)
 l=j.f?i:j.gark()
 k=A.e_(i,i,B.t,i,i,i,i,i,i,i,i,i,i,i,new A.bF(A.an(12),B.k),i,i,i,i,i)
-s=A.aM6(A.b([A.hO(A.dX(A.bm(i,A.be(A.b([B.a6j,B.dt,p,B.hP,o,B.hP,n,B.hP,m,B.Dm,A.c4(A.jG(j.f?B.HJ:B.a6w,l,k),50,1/0)],q),B.Z,B.l,B.n),B.q,i,i,new A.bd(B.a3,i,r,s,i,i,B.H),i,i,i,B.eF,i,i,800),i,i),i,B.B,B.eF,i,B.W),j.adV()],q),i)}return A.aPw(A.hf(h,B.J,s,i,i),2)},
-adV(){var s=null,r=A.an(16),q=A.dn(B.i.bh(0.05),1),p=t.p,o=A.bt(A.b([B.a4Q,A.jH(B.MY,B.a5F,this.gad3(),A.e_(s,s,B.t,s,s,s,s,s,s,s,s,s,s,s,s,s,s,s,s,s))],p),B.p,B.bT,B.n,0),n=this.ax.length
+s=A.aM6(A.b([A.hO(A.dX(A.bm(i,A.be(A.b([B.a6j,B.dt,p,B.hP,o,B.hP,n,B.hP,m,B.Dm,A.c4(A.jG(j.f?B.HJ:B.a6x,l,k),50,1/0)],q),B.Z,B.l,B.n),B.q,i,i,new A.bd(B.a3,i,r,s,i,i,B.H),i,i,i,B.eF,i,i,800),i,i),i,B.B,B.eF,i,B.W),j.adV()],q),i)}return A.aPw(A.hf(h,B.J,s,i,i),2)},
+adV(){var s=null,r=A.an(16),q=A.dn(B.i.bh(0.05),1),p=t.p,o=A.bt(A.b([B.a4P,A.jH(B.MY,B.a5F,this.gad3(),A.e_(s,s,B.t,s,s,s,s,s,s,s,s,s,s,s,s,s,s,s,s,s))],p),B.p,B.bT,B.n,0),n=this.ax.length
 return new A.bk(B.eF,A.dX(A.bm(s,A.be(A.b([o,B.Kb,n===0?B.a6L:A.aLo(new A.aw_(this),n,s,new A.aw0(),!0)],p),B.Z,B.l,B.n),B.q,s,s,new A.bd(B.a3,s,q,r,s,s,B.H),s,s,s,B.eF,s,s,800),s,s),s)},
 Ty(a,b,c,d){var s=null,r=A.e0(c,B.di,s,s)
 return A.eg(s,B.au,!1,s,!0,B.o,s,A.eD(),b,s,s,s,s,s,2,A.cI(s,new A.c7(4,A.an(12),B.k),s,s,s,s,s,s,!0,s,s,s,s,s,s,B.J,!0,s,s,s,s,s,s,s,s,s,s,s,s,s,s,s,s,s,s,s,s,s,s,B.aA,a,!0,!0,!1,s,r,s,s,s,s,s,s,s,s,s,s,s,s),B.B,!0,s,!0,s,!1,s,B.av,s,s,s,s,s,s,s,s,d,s,s,!1,"\u2022",s,s,s,s,s,!1,s,s,!1,s,!0,s,B.aK,s,s,s,s,s,s,s,s,s,s,s,B.a5,!0,B.a4,s,B.aT,s,s,s,s)},
@@ -101118,8 +101122,8 @@ n="Son Tarih: "+q.c4(n)
 q=n}else q="Son Teslim Tarihi Se\xe7"
 n=t.p
 s=A.hO(A.c4(A.be(A.b([r,B.aM,o,B.aM,m,B.aM,A.hH(!1,k,!0,A.bm(k,A.bt(A.b([A.a6(q,k,k,k,k,B.aA,k,k,k),B.MC],n),B.p,B.bT,B.n,0),B.q,k,k,new A.bd(B.J,k,k,p,k,k,B.H),k,k,k,B.qC,k,k,k),k,!0,k,k,k,k,k,k,k,k,k,k,new A.aFL(f,a,b),k,k,k,k,k)],n),B.p,B.l,B.ad),k,s),k,B.B,k,k,B.W)}r=t.p
-f=f.d?A.b([],r):A.b([A.eQ(B.d8,new A.aFM(a),k),A.jG(B.a51,new A.aFN(f,l.b,l.c,b,a),A.e_(k,k,B.t,k,k,k,k,k,k,k,k,k,k,k,k,k,k,k,k,k))],r)
-return A.iO(f,B.a3,s,new A.a5(h,24,h,24),new A.bF(g,B.k),B.a4P)},
+f=f.d?A.b([],r):A.b([A.eQ(B.d8,new A.aFM(a),k),A.jG(B.a50,new A.aFN(f,l.b,l.c,b,a),A.e_(k,k,B.t,k,k,k,k,k,k,k,k,k,k,k,k,k,k,k,k,k))],r)
+return A.iO(f,B.a3,s,new A.a5(h,24,h,24),new A.bF(g,B.k),B.a4O)},
 $S:46}
 A.aFH.prototype={
 $1(a){var s=null,r=a.h(0,"id")
@@ -101380,7 +101384,7 @@ return A.n(q.d.ba("profiles").bK(A.a2(["company_id",null],p,p)).c1("id",a),$asyn
 case 5:q.nt()
 case 3:return A.t(null,r)}})
 return A.u($async$wG,r)},
-H(a){var s,r,q,p,o,n,m,l=this,k=null,j="Kodu Kopyala",i=A.aC(a,k,t.w).w.a.a<600,h=A.i6(k,k,B.bE,k,0,B.bP,k,k,B.a6s)
+H(a){var s,r,q,p,o,n,m,l=this,k=null,j="Kodu Kopyala",i=A.aC(a,k,t.w).w.a.a<600,h=A.i6(k,k,B.bE,k,0,B.bP,k,k,B.a6t)
 if(l.e)s=B.bN
 else{s=i?16:32
 r=A.an(16)
@@ -101389,7 +101393,7 @@ p=l.gasu()
 o=t.p
 n=l.gasr()
 m=l.w
-p=i?A.be(A.b([B.a5R,B.fh,A.bt(A.b([A.bC(A.a6(m,k,B.a9,k,k,B.E_,k,k,k),1),A.bt(A.b([A.eJ(k,k,k,B.mE,k,k,new A.aGj(l,a),k,k,k,j),A.eJ(k,k,k,B.mF,k,k,p,k,k,k,"Kodu De\u011fi\u015ftir")],o),B.p,B.l,B.n,0)],o),B.p,B.bT,B.n,0),B.aF,A.c4(A.jH(B.rB,B.E7,n,A.e_(k,k,B.t,k,k,k,k,k,k,k,k,k,B.lH,k,new A.bF(A.an(12),B.k),k,k,k,k,k)),k,1/0)],o),B.Z,B.l,B.n):A.bt(A.b([A.be(A.b([B.a4Y,B.fh,A.bt(A.b([A.a6(m,k,k,k,k,B.a2l,k,k,k),B.be,A.eJ(k,k,k,B.mE,k,k,new A.aGk(l,a),k,k,k,j),A.eJ(k,k,k,B.mF,k,k,p,k,k,k,"\u015eirket Kodunu De\u011fi\u015ftir")],o),B.p,B.l,B.n,0)],o),B.Z,B.l,B.n),A.jH(B.rB,B.E7,n,A.e_(k,k,B.t,k,k,k,k,k,k,k,k,k,B.qE,k,new A.bF(A.an(12),B.k),k,k,k,k,k))],o),B.p,B.bT,B.n,0)
+p=i?A.be(A.b([B.a5R,B.fh,A.bt(A.b([A.bC(A.a6(m,k,B.a9,k,k,B.E_,k,k,k),1),A.bt(A.b([A.eJ(k,k,k,B.mE,k,k,new A.aGj(l,a),k,k,k,j),A.eJ(k,k,k,B.mF,k,k,p,k,k,k,"Kodu De\u011fi\u015ftir")],o),B.p,B.l,B.n,0)],o),B.p,B.bT,B.n,0),B.aF,A.c4(A.jH(B.rB,B.E7,n,A.e_(k,k,B.t,k,k,k,k,k,k,k,k,k,B.lH,k,new A.bF(A.an(12),B.k),k,k,k,k,k)),k,1/0)],o),B.Z,B.l,B.n):A.bt(A.b([A.be(A.b([B.a4X,B.fh,A.bt(A.b([A.a6(m,k,k,k,k,B.a2l,k,k,k),B.be,A.eJ(k,k,k,B.mE,k,k,new A.aGk(l,a),k,k,k,j),A.eJ(k,k,k,B.mF,k,k,p,k,k,k,"\u015eirket Kodunu De\u011fi\u015ftir")],o),B.p,B.l,B.n,0)],o),B.Z,B.l,B.n),A.jH(B.rB,B.E7,n,A.e_(k,k,B.t,k,k,k,k,k,k,k,k,k,B.qE,k,new A.bF(A.an(12),B.k),k,k,k,k,k))],o),B.p,B.bT,B.n,0)
 o=new A.bk(new A.a5(s,s,s,s),A.be(A.b([A.bm(k,p,B.q,k,k,new A.bd(B.a3,k,q,r,k,k,B.H),k,k,k,B.aK,k,k,k),B.dt,B.a60,B.aF,A.bC(A.ov(new A.aGl(l),l.y.length,k),1)],o),B.Z,B.l,B.n),k)
 s=o}return A.hf(h,B.J,s,k,k)}}
 A.aFV.prototype={
@@ -101405,7 +101409,7 @@ $1(a){return new A.hQ(new A.aGf(this.a,this.b,this.c),null)},
 $S:48}
 A.aGf.prototype={
 $2(a,b){var s,r,q,p=null,o=A.aC(a,p,t.w).w.a.a,n=o<600,m=n?16:40,l=A.an(16),k=n?o:420,j=this.c,i=t.p
-k=A.c4(A.be(A.b([B.a57,B.aM,A.eg(p,B.au,!1,p,!0,B.o,p,A.eD(),j,p,p,p,p,p,2,A.cI(p,new A.c7(4,A.an(12),B.k),p,p,p,p,p,p,!0,p,p,p,p,p,p,B.J,!0,p,p,p,p,p,p,p,p,p,p,p,p,p,p,p,p,p,p,p,p,p,p,B.aA,"Yeni \u015eirket Kodu",!0,!0,!1,p,B.mF,p,p,p,p,p,p,p,p,p,p,p,p),B.B,!0,p,!0,p,!1,p,B.av,p,p,p,p,p,p,p,p,1,p,p,!1,"\u2022",p,p,p,p,p,!1,p,p,!1,p,!0,p,B.aK,p,p,p,p,p,p,p,p,p,p,p,B.a_Y,!0,B.a4,p,B.aT,p,p,p,p)],i),B.Z,B.l,B.ad),p,k)
+k=A.c4(A.be(A.b([B.a56,B.aM,A.eg(p,B.au,!1,p,!0,B.o,p,A.eD(),j,p,p,p,p,p,2,A.cI(p,new A.c7(4,A.an(12),B.k),p,p,p,p,p,p,!0,p,p,p,p,p,p,B.J,!0,p,p,p,p,p,p,p,p,p,p,p,p,p,p,p,p,p,p,p,p,p,p,B.aA,"Yeni \u015eirket Kodu",!0,!0,!1,p,B.mF,p,p,p,p,p,p,p,p,p,p,p,p),B.B,!0,p,!0,p,!1,p,B.av,p,p,p,p,p,p,p,p,1,p,p,!1,"\u2022",p,p,p,p,p,!1,p,p,!1,p,!0,p,B.aK,p,p,p,p,p,p,p,p,p,p,p,B.a_Y,!0,B.a4,p,B.aT,p,p,p,p)],i),B.Z,B.l,B.ad),p,k)
 s=A.eQ(B.d8,new A.aGd(a),p)
 r=this.a
 q=r.a
@@ -101472,7 +101476,7 @@ a=c.a==="admin"
 r=A.e0(B.M_,a?B.y:B.cf,o,16)
 q=t.p
 j=A.hO(A.c4(A.be(A.b([B.a6J,B.nT,h,B.bl,f,B.bl,d,B.aM,b,B.aF,A.bm(o,A.bt(A.b([r,B.be,A.bC(A.a6(a?"Y\xf6netici: \u015eirket ayarlar\u0131n\u0131 de\u011fi\u015ftirebilir, personel ekleyip \xe7\u0131karabilir ve t\xfcm finansal verilere tam m\xfcdahale edebilir.":"Personel: M\xfckellef, tahsilat, evrak ve g\xf6rev i\u015flemlerini y\xfcr\xfctebilir; \u015firket ayarlar\u0131na ve ekip y\xf6netimine giremez.",o,o,o,o,B.a45,o,o,o),1)],q),B.p,B.l,B.n,0),B.q,o,o,new A.bd(a0,o,o,s,o,o,B.H),o,o,o,B.dP,o,o,o)],q),B.Z,B.l,B.ad),o,j),o,B.B,o,o,B.W)
-i=c.b?A.b([B.yz],q):A.b([A.eQ(B.d8,new A.aG3(a1),o),A.jH(B.rD,B.a58,new A.aG4(c,p.b,i,g,e,a1,a2),A.e_(o,o,B.t,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o))],q)
+i=c.b?A.b([B.yz],q):A.b([A.eQ(B.d8,new A.aG3(a1),o),A.jH(B.rD,B.a57,new A.aG4(c,p.b,i,g,e,a1,a2),A.e_(o,o,B.t,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o))],q)
 return A.iO(i,B.a3,j,new A.a5(l,24,l,24),new A.bF(k,B.k),B.WM)},
 $S:46}
 A.aG2.prototype={
@@ -109387,8 +109391,8 @@ B.Hx=new A.eq(B.V,null,null,B.a4z,null)
 B.Mr=new A.aG(63357,"MaterialIcons",!1)
 B.My=new A.aL(B.Mr,64,B.iq,null,null)
 B.aF=new A.cF(null,12,null,null)
-B.a5m=new A.a0("Bu m\xfckellefe ait evrak bulunamad\u0131.",null,B.eg,null,null,null,null,null,null,null,null)
-B.Q3=s([B.My,B.aF,B.a5m],t.p)
+B.a5l=new A.a0("Bu m\xfckellefe ait evrak bulunamad\u0131.",null,B.eg,null,null,null,null,null,null,null,null)
+B.Q3=s([B.My,B.aF,B.a5l],t.p)
 B.Jt=new A.lY(B.W,B.e4,B.n,B.p,null,B.aq,null,0,B.Q3,null)
 B.Hy=new A.eq(B.V,null,null,B.Jt,null)
 B.a4J=new A.a0("Hen\xfcz tamamlanm\u0131\u015f bir tahsilat bulunmuyor.\nSa\u011f alttaki butondan tahsilat veya ge\xe7mi\u015f gelir ekleyebilirsiniz.",null,B.eg,B.by,null,null,null,null,null,null,null)
@@ -109662,8 +109666,8 @@ B.iE=new A.OR(0,"start")
 B.iF=new A.OR(1,"end")
 B.Kc=new A.OT(null)
 B.Kd=new A.vH(null,null,null,null,null,null,null,null,null)
-B.a5p=new A.a0("Se\xe7iniz",null,null,null,null,null,null,null,null,null,null)
-B.Kf=new A.d3(null,B.a5p,B.b1,null,t.b7)
+B.a5o=new A.a0("Se\xe7iniz",null,null,null,null,null,null,null,null,null,null)
+B.Kf=new A.d3(null,B.a5o,B.b1,null,t.b7)
 B.a6g=new A.a0("Kendime Ata",null,null,null,null,null,null,null,null,null,null)
 B.Kg=new A.d3(null,B.a6g,B.b1,null,t.b7)
 B.Kq=new A.BS(null,null,null,null)
@@ -110250,8 +110254,8 @@ B.a4D=new A.a0("K\u0131rtasiye / Yaz\u0131l\u0131m / Donan\u0131m",null,null,nul
 B.Ko=new A.d3("K\u0131rtasiye & Donan\u0131m",B.a4D,B.b1,null,t.b7)
 B.a5U=new A.a0("Vergi & Resmi Har\xe7lar",null,null,null,null,null,null,null,null,null,null)
 B.Kp=new A.d3("Vergi & Resmi Har\xe7lar",B.a5U,B.b1,null,t.b7)
-B.a4R=new A.a0("Di\u011fer Genel Masraflar",null,null,null,null,null,null,null,null,null,null)
-B.Kh=new A.d3("Di\u011fer Masraflar",B.a4R,B.b1,null,t.b7)
+B.a4Q=new A.a0("Di\u011fer Genel Masraflar",null,null,null,null,null,null,null,null,null,null)
+B.Kh=new A.d3("Di\u011fer Masraflar",B.a4Q,B.b1,null,t.b7)
 B.PM=s([B.Kl,B.Ke,B.Ko,B.Kp,B.Kh],t.FG)
 B.bm=new A.fl(0,"icon")
 B.bB=new A.fl(1,"input")
@@ -110268,10 +110272,10 @@ B.PS=s([B.bm,B.bB,B.aO,B.bJ,B.bK,B.bL,B.aH,B.bq,B.cy,B.cz,B.dx],A.aA("H<fl>"))
 B.Rr=new A.rt("en",null,"US")
 B.t_=s([B.Rr],t.ss)
 B.a9=new A.xV(2,"ellipsis")
-B.a6B=new A.a0("Standart Personel (\u0130\u015flem & Takip Yetkisi)",null,null,null,null,null,B.a9,null,null,null,null)
-B.Ki=new A.d3("personel",B.a6B,B.b1,null,t.b7)
-B.a5b=new A.a0("Y\xf6netici (Tam Yetkili - Her \u015eeye M\xfcdahale Edebilir)",null,null,null,null,null,B.a9,null,null,null,null)
-B.Km=new A.d3("admin",B.a5b,B.b1,null,t.b7)
+B.a6C=new A.a0("Standart Personel (\u0130\u015flem & Takip Yetkisi)",null,null,null,null,null,B.a9,null,null,null,null)
+B.Ki=new A.d3("personel",B.a6C,B.b1,null,t.b7)
+B.a5a=new A.a0("Y\xf6netici (Tam Yetkili - Her \u015eeye M\xfcdahale Edebilir)",null,null,null,null,null,B.a9,null,null,null,null)
+B.Km=new A.d3("admin",B.a5a,B.b1,null,t.b7)
 B.PT=s([B.Ki,B.Km],t.FG)
 B.t0=s([0,41,61,101,131,181,251,301,360],t.n)
 B.a8G=new A.nm(0,0)
@@ -110302,10 +110306,10 @@ B.Lt=new A.kM(1,"unverified")
 B.Qd=s([B.Ls,B.Lt,B.r0],A.aA("H<kM>"))
 B.a5T=new A.a0("Ayl\u0131k (Her Ay Otomatik Yans\u0131r)",null,null,null,null,null,null,null,null,null,null)
 B.Kj=new A.d3("monthly",B.a5T,B.b1,null,t.b7)
-B.a5i=new A.a0("Y\u0131ll\u0131k (Her Y\u0131l Otomatik Yans\u0131r)",null,null,null,null,null,null,null,null,null,null)
-B.Kn=new A.d3("yearly",B.a5i,B.b1,null,t.b7)
-B.a4W=new A.a0("1 Defal\u0131k (Tek Seferlik \u0130\u015flem)",null,null,null,null,null,null,null,null,null,null)
-B.Kk=new A.d3("one_time",B.a4W,B.b1,null,t.b7)
+B.a5h=new A.a0("Y\u0131ll\u0131k (Her Y\u0131l Otomatik Yans\u0131r)",null,null,null,null,null,null,null,null,null,null)
+B.Kn=new A.d3("yearly",B.a5h,B.b1,null,t.b7)
+B.a4V=new A.a0("1 Defal\u0131k (Tek Seferlik \u0130\u015flem)",null,null,null,null,null,null,null,null,null,null)
+B.Kk=new A.d3("one_time",B.a4V,B.b1,null,t.b7)
 B.t3=s([B.Kj,B.Kn,B.Kk],t.FG)
 B.Qi=s(["Mon","Tue","Wed","Thu","Fri","Sat","Sun"],t.s)
 B.dy=new A.kj(0,"leading")
@@ -111557,13 +111561,13 @@ B.Ca=new A.Ee(null)
 B.MQ=new A.aL(B.dU,18,B.cf,null,null)
 B.be=new A.cF(8,null,null,null)
 B.a5=new A.m(!0,B.i,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null)
-B.a5o=new A.a0("Standart Personele D\xfc\u015f\xfcr",null,B.a5,null,null,null,null,null,null,null,null)
-B.Rl=s([B.MQ,B.be,B.a5o],t.p)
+B.a5n=new A.a0("Standart Personele D\xfc\u015f\xfcr",null,B.a5,null,null,null,null,null,null,null,null)
+B.Rl=s([B.MQ,B.be,B.a5n],t.p)
 B.WW=new A.f1(B.ab,B.l,B.n,B.p,null,B.aq,null,0,B.Rl,null)
 B.VM=new A.hd("make_personel",B.WW,null,t.wI)
 B.o8=new A.m(!0,B.y,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null)
-B.a53=new A.a0("Sil",null,B.o8,null,null,null,null,null,null,null,null)
-B.VN=new A.hd("delete",B.a53,null,t.wI)
+B.a52=new A.a0("Sil",null,B.o8,null,null,null,null,null,null,null,null)
+B.VN=new A.hd("delete",B.a52,null,t.wI)
 B.Mg=new A.aG(59020,"MaterialIcons",!0)
 B.MA=new A.aL(B.Mg,18,B.ce,null,null)
 B.a6o=new A.a0("Tahsilat\u0131 Geri Al",null,B.a5,null,null,null,null,null,null,null,null)
@@ -111571,13 +111575,13 @@ B.OD=s([B.MA,B.be,B.a6o],t.p)
 B.WT=new A.f1(B.ab,B.l,B.n,B.p,null,B.aq,null,0,B.OD,null)
 B.VO=new A.hd("unpaid",B.WT,null,t.wI)
 B.MH=new A.aL(B.mz,18,B.t,null,null)
-B.a5s=new A.a0("Tahakkuk / Hizmet Tan\u0131mla",null,B.a5,null,null,null,null,null,null,null,null)
-B.Q8=s([B.MH,B.be,B.a5s],t.p)
+B.a5r=new A.a0("Tahakkuk / Hizmet Tan\u0131mla",null,B.a5,null,null,null,null,null,null,null,null)
+B.Q8=s([B.MH,B.be,B.a5r],t.p)
 B.WO=new A.f1(B.ab,B.l,B.n,B.p,null,B.aq,null,0,B.Q8,null)
 B.VP=new A.hd("charge",B.WO,null,t.wI)
 B.a1K=new A.m(!0,B.cf,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null)
-B.a5u=new A.a0("\u0130\u015flemdeye Al",null,B.a1K,null,null,null,null,null,null,null,null)
-B.VQ=new A.hd("in_progress",B.a5u,null,t.wI)
+B.a5t=new A.a0("\u0130\u015flemdeye Al",null,B.a1K,null,null,null,null,null,null,null,null)
+B.VQ=new A.hd("in_progress",B.a5t,null,t.wI)
 B.a4I=new A.a0("Yap\u0131lacaklara Al",null,B.a5,null,null,null,null,null,null,null,null)
 B.VR=new A.hd("todo",B.a4I,null,t.wI)
 B.No=new A.aL(B.hc,18,B.y,null,null)
@@ -111595,8 +111599,8 @@ B.a3E=new A.m(!0,B.ay,null,null,null,null,null,null,null,null,null,null,null,nul
 B.a63=new A.a0("Tamamland\u0131 \u0130\u015faretle",null,B.a3E,null,null,null,null,null,null,null,null)
 B.VU=new A.hd("completed",B.a63,null,t.wI)
 B.ML=new A.aL(B.mv,18,B.y,null,null)
-B.a6y=new A.a0("M\xfckellefi Sil",null,B.o8,null,null,null,null,null,null,null,null)
-B.QR=s([B.ML,B.be,B.a6y],t.p)
+B.a6z=new A.a0("M\xfckellefi Sil",null,B.o8,null,null,null,null,null,null,null,null)
+B.QR=s([B.ML,B.be,B.a6z],t.p)
 B.WU=new A.f1(B.ab,B.l,B.n,B.p,null,B.aq,null,0,B.QR,null)
 B.VV=new A.hd("delete",B.WU,null,t.wI)
 B.Ny=new A.aL(B.rm,18,B.Y,null,null)
@@ -111681,14 +111685,14 @@ B.WJ=new A.f1(B.ab,B.l,B.n,B.p,null,B.aq,null,0,B.OB,null)
 B.LT=new A.aG(57689,"MaterialIcons",!1)
 B.rC=new A.aL(B.LT,28,B.ay,null,null)
 B.ag=new A.m(!0,B.i,null,null,null,null,null,B.Q,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null)
-B.a6v=new A.a0("Hesap Olu\u015fturuldu!",null,B.ag,null,null,null,null,null,null,null,null)
-B.Ln=new A.jI(1,B.d1,B.a6v,null)
+B.a6w=new A.a0("Hesap Olu\u015fturuldu!",null,B.ag,null,null,null,null,null,null,null,null)
+B.Ln=new A.jI(1,B.d1,B.a6w,null)
 B.PG=s([B.rC,B.ed,B.Ln],t.p)
 B.WK=new A.f1(B.ab,B.l,B.n,B.p,null,B.aq,null,0,B.PG,null)
 B.M7=new A.aG(58516,"MaterialIcons",!1)
 B.MG=new A.aL(B.M7,null,B.t,null,null)
-B.a5d=new A.a0("Yeni Ekip \xdcyesi Olu\u015ftur",null,B.c5,null,null,null,null,null,null,null,null)
-B.Lj=new A.jI(1,B.d1,B.a5d,null)
+B.a5c=new A.a0("Yeni Ekip \xdcyesi Olu\u015ftur",null,B.c5,null,null,null,null,null,null,null,null)
+B.Lj=new A.jI(1,B.d1,B.a5c,null)
 B.Q9=s([B.MG,B.ed,B.Lj],t.p)
 B.WM=new A.f1(B.ab,B.l,B.n,B.p,null,B.aq,null,0,B.Q9,null)
 B.a6n=new A.a0("Ofisiniz Kuruldu!",null,B.ag,null,null,null,null,null,null,null,null)
@@ -111696,14 +111700,14 @@ B.Lk=new A.jI(1,B.d1,B.a6n,null)
 B.Pv=s([B.rC,B.ed,B.Lk],t.p)
 B.WN=new A.f1(B.ab,B.l,B.n,B.p,null,B.aq,null,0,B.Pv,null)
 B.Nf=new A.aL(B.rt,null,B.t,null,null)
-B.a5t=new A.a0("\u015eirket Davet Kodunu De\u011fi\u015ftir",null,B.c5,null,null,null,null,null,null,null,null)
-B.Ll=new A.jI(1,B.d1,B.a5t,null)
+B.a5s=new A.a0("\u015eirket Davet Kodunu De\u011fi\u015ftir",null,B.c5,null,null,null,null,null,null,null,null)
+B.Ll=new A.jI(1,B.d1,B.a5s,null)
 B.QQ=s([B.Nf,B.ed,B.Ll],t.p)
 B.WP=new A.f1(B.ab,B.l,B.n,B.p,null,B.aq,null,0,B.QQ,null)
 B.MI=new A.aL(B.rq,24,B.i,null,null)
 B.ds=new A.cF(12,null,null,null)
-B.a5x=new A.a0("Bildirim Merkezi",null,B.ag,null,null,null,null,null,null,null,null)
-B.Rk=s([B.MI,B.ds,B.a5x],t.p)
+B.a5w=new A.a0("Bildirim Merkezi",null,B.ag,null,null,null,null,null,null,null,null)
+B.Rk=s([B.MI,B.ds,B.a5w],t.p)
 B.WQ=new A.f1(B.ab,B.l,B.n,B.p,null,B.aq,null,0,B.Rk,null)
 B.Mf=new A.aG(59005,"MaterialIcons",!0)
 B.ND=new A.aL(B.Mf,null,B.y,null,null)
@@ -111967,8 +111971,8 @@ B.Z4=new A.cF(4,null,null,null)
 B.k_=new A.cF(6,null,null,null)
 B.Z5=new A.cF(null,150,B.bN,null)
 B.aA=new A.m(!0,B.ax,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null)
-B.a5w=new A.a0("Tahakkuk i\u015flemi uygulan\u0131yor...",null,B.aA,null,null,null,null,null,null,null,null)
-B.OJ=s([B.l6,B.aM,B.a5w],t.p)
+B.a5v=new A.a0("Tahakkuk i\u015flemi uygulan\u0131yor...",null,B.aA,null,null,null,null,null,null,null,null)
+B.OJ=s([B.l6,B.aM,B.a5v],t.p)
 B.Ju=new A.lY(B.W,B.e4,B.n,B.p,null,B.aq,null,0,B.OJ,null)
 B.Ht=new A.eq(B.V,null,null,B.Ju,null)
 B.Z6=new A.cF(null,150,B.Ht,null)
@@ -112006,14 +112010,14 @@ B.a4s=new A.a0("Ba\u015flang\u0131\xe7 \u015fifresi en az 6 karakter olmal\u0131
 B.Zj=new A.ca(B.a4s,B.b9,null,null,null,null,null,null,null,null,null,null,null,B.I,!1,null,null,null,B.o,null)
 B.a4C=new A.a0("L\xfctfen Firma / M\xfckellef Unvan\u0131n\u0131 girin.",null,null,null,null,null,null,null,null,null,null)
 B.Zk=new A.ca(B.a4C,B.b9,null,null,null,null,null,null,null,null,null,null,null,B.I,!1,null,null,null,B.o,null)
-B.a56=new A.a0(u.Z,null,null,null,null,null,null,null,null,null,null)
-B.Dr=new A.ca(B.a56,B.y,null,null,null,null,null,null,null,null,null,null,null,B.I,!1,null,null,null,B.o,null)
+B.a55=new A.a0(u.Z,null,null,null,null,null,null,null,null,null,null)
+B.Dr=new A.ca(B.a55,B.y,null,null,null,null,null,null,null,null,null,null,null,B.I,!1,null,null,null,B.o,null)
 B.a6d=new A.a0("Tahsilat i\u015flenirken hata olu\u015ftu.",null,null,null,null,null,null,null,null,null,null)
 B.Zl=new A.ca(B.a6d,B.y,null,null,null,null,null,null,null,null,null,null,null,B.I,!1,null,null,null,B.o,null)
-B.a6D=new A.a0("Tahakkuk ba\u015far\u0131yla eklendi!",null,null,null,null,null,null,null,null,null,null)
-B.Zm=new A.ca(B.a6D,B.bG,null,null,null,null,null,null,null,null,null,null,null,B.I,!1,null,null,null,B.o,null)
-B.a6r=new A.a0("Ad Soyad alan\u0131 bo\u015f b\u0131rak\u0131lamaz.",null,null,null,null,null,null,null,null,null,null)
-B.Zn=new A.ca(B.a6r,B.b9,null,null,null,null,null,null,null,null,null,null,null,B.I,!1,null,null,null,B.o,null)
+B.a6E=new A.a0("Tahakkuk ba\u015far\u0131yla eklendi!",null,null,null,null,null,null,null,null,null,null)
+B.Zm=new A.ca(B.a6E,B.bG,null,null,null,null,null,null,null,null,null,null,null,B.I,!1,null,null,null,B.o,null)
+B.a6s=new A.a0("Ad Soyad alan\u0131 bo\u015f b\u0131rak\u0131lamaz.",null,null,null,null,null,null,null,null,null,null)
+B.Zn=new A.ca(B.a6s,B.b9,null,null,null,null,null,null,null,null,null,null,null,B.I,!1,null,null,null,B.o,null)
 B.a6q=new A.a0("Tahsilat ba\u015far\u0131yla kasaya eklendi!",null,null,null,null,null,null,null,null,null,null)
 B.Zo=new A.ca(B.a6q,B.bG,null,null,null,null,null,null,null,null,null,null,null,B.I,!1,null,null,null,B.o,null)
 B.a6I=new A.a0("Tahsilat ba\u015far\u0131yla al\u0131nd\u0131 olarak i\u015faretlendi!",null,null,null,null,null,null,null,null,null,null)
@@ -112026,48 +112030,48 @@ B.a6K=new A.a0("L\xfctfen t\xfcm alanlar\u0131 doldurun.",null,null,null,null,nu
 B.Zr=new A.ca(B.a6K,B.b9,null,null,null,null,null,null,null,null,null,null,null,B.I,!1,null,null,null,B.o,null)
 B.a4y=new A.a0("Ge\xe7ersiz \u015eirket Kodu! L\xfctfen y\xf6neticinizden do\u011fru kodu (\xd6rn: MHK_1234) al\u0131n.",null,null,null,null,null,null,null,null,null,null)
 B.Zs=new A.ca(B.a4y,B.y,null,null,null,null,null,null,null,null,null,null,null,B.I,!1,null,null,null,B.o,null)
-B.a5h=new A.a0('Bu dosya \xf6nizlemesi i\xe7in Supabase Storage "documents" klas\xf6r\xfcn\xfcn aktif olmas\u0131 gerekir.',null,null,null,null,null,null,null,null,null,null)
-B.Zt=new A.ca(B.a5h,B.b9,null,null,null,null,null,null,null,null,null,null,null,B.I,!1,null,null,null,B.o,null)
-B.a4Z=new A.a0("Giri\u015f bilgileri kopyaland\u0131!",null,null,null,null,null,null,null,null,null,null)
-B.Zu=new A.ca(B.a4Z,B.bG,null,null,null,null,null,null,null,null,null,null,null,B.I,!1,null,null,null,B.o,null)
-B.a4T=new A.a0("L\xfctfen masraf a\xe7\u0131klamas\u0131n\u0131 ve ge\xe7erli bir tutar\u0131 girin.",null,null,null,null,null,null,null,null,null,null)
-B.Zv=new A.ca(B.a4T,B.b9,null,null,null,null,null,null,null,null,null,null,null,B.I,!1,null,null,null,B.o,null)
+B.a5g=new A.a0('Bu dosya \xf6nizlemesi i\xe7in Supabase Storage "documents" klas\xf6r\xfcn\xfcn aktif olmas\u0131 gerekir.',null,null,null,null,null,null,null,null,null,null)
+B.Zt=new A.ca(B.a5g,B.b9,null,null,null,null,null,null,null,null,null,null,null,B.I,!1,null,null,null,B.o,null)
+B.a4Y=new A.a0("Giri\u015f bilgileri kopyaland\u0131!",null,null,null,null,null,null,null,null,null,null)
+B.Zu=new A.ca(B.a4Y,B.bG,null,null,null,null,null,null,null,null,null,null,null,B.I,!1,null,null,null,B.o,null)
+B.a4S=new A.a0("L\xfctfen masraf a\xe7\u0131klamas\u0131n\u0131 ve ge\xe7erli bir tutar\u0131 girin.",null,null,null,null,null,null,null,null,null,null)
+B.Zv=new A.ca(B.a4S,B.b9,null,null,null,null,null,null,null,null,null,null,null,B.I,!1,null,null,null,B.o,null)
 B.a4u=new A.a0("Bu kod ba\u015fka bir \u015firket taraf\u0131ndan kullan\u0131l\u0131yor olabilir. L\xfctfen farkl\u0131 bir kod deneyin.",null,null,null,null,null,null,null,null,null,null)
 B.Zw=new A.ca(B.a4u,B.y,null,null,null,null,null,null,null,null,null,null,null,B.I,!1,null,null,null,B.o,null)
 B.a5N=new A.a0("L\xfctfen a\xe7\u0131klama ve ge\xe7erli bir tutar girin.",null,null,null,null,null,null,null,null,null,null)
 B.Zx=new A.ca(B.a5N,B.b9,null,null,null,null,null,null,null,null,null,null,null,B.I,!1,null,null,null,B.o,null)
-B.a5r=new A.a0("L\xfctfen zorunlu alanlar\u0131 doldurun.",null,null,null,null,null,null,null,null,null,null)
-B.Zy=new A.ca(B.a5r,B.b9,null,null,null,null,null,null,null,null,null,null,null,B.I,!1,null,null,null,B.o,null)
-B.a5e=new A.a0("\u015eifreniz en az 6 karakter olmal\u0131d\u0131r.",null,null,null,null,null,null,null,null,null,null)
-B.Zz=new A.ca(B.a5e,B.b9,null,null,null,null,null,null,null,null,null,null,null,B.I,!1,null,null,null,B.o,null)
-B.a59=new A.a0("\u0130\u015flem kaydedilirken bir hata olu\u015ftu.",null,null,null,null,null,null,null,null,null,null)
-B.ZA=new A.ca(B.a59,B.y,null,null,null,null,null,null,null,null,null,null,null,B.I,!1,null,null,null,B.o,null)
-B.a6E=new A.a0("G\xfcncelleme s\u0131ras\u0131nda bir hata olu\u015ftu.",null,null,null,null,null,null,null,null,null,null)
-B.ZB=new A.ca(B.a6E,B.y,null,null,null,null,null,null,null,null,null,null,null,B.I,!1,null,null,null,B.o,null)
-B.a6C=new A.a0("L\xfctfen e-posta ve \u015fifrenizi girin.",null,null,null,null,null,null,null,null,null,null)
-B.ZC=new A.ca(B.a6C,B.b9,null,null,null,null,null,null,null,null,null,null,null,B.I,!1,null,null,null,B.o,null)
+B.a5q=new A.a0("L\xfctfen zorunlu alanlar\u0131 doldurun.",null,null,null,null,null,null,null,null,null,null)
+B.Zy=new A.ca(B.a5q,B.b9,null,null,null,null,null,null,null,null,null,null,null,B.I,!1,null,null,null,B.o,null)
+B.a5d=new A.a0("\u015eifreniz en az 6 karakter olmal\u0131d\u0131r.",null,null,null,null,null,null,null,null,null,null)
+B.Zz=new A.ca(B.a5d,B.b9,null,null,null,null,null,null,null,null,null,null,null,B.I,!1,null,null,null,B.o,null)
+B.a58=new A.a0("\u0130\u015flem kaydedilirken bir hata olu\u015ftu.",null,null,null,null,null,null,null,null,null,null)
+B.ZA=new A.ca(B.a58,B.y,null,null,null,null,null,null,null,null,null,null,null,B.I,!1,null,null,null,B.o,null)
+B.a6F=new A.a0("G\xfcncelleme s\u0131ras\u0131nda bir hata olu\u015ftu.",null,null,null,null,null,null,null,null,null,null)
+B.ZB=new A.ca(B.a6F,B.y,null,null,null,null,null,null,null,null,null,null,null,B.I,!1,null,null,null,B.o,null)
+B.a6D=new A.a0("L\xfctfen e-posta ve \u015fifrenizi girin.",null,null,null,null,null,null,null,null,null,null)
+B.ZC=new A.ca(B.a6D,B.b9,null,null,null,null,null,null,null,null,null,null,null,B.I,!1,null,null,null,B.o,null)
 B.a6l=new A.a0("\u015eirket kodu bo\u015f b\u0131rak\u0131lamaz!",null,null,null,null,null,null,null,null,null,null)
 B.ZD=new A.ca(B.a6l,B.b9,null,null,null,null,null,null,null,null,null,null,null,B.I,!1,null,null,null,B.o,null)
-B.a5f=new A.a0("Masraf kayd\u0131 ba\u015far\u0131yla eklendi!",null,null,null,null,null,null,null,null,null,null)
-B.ZE=new A.ca(B.a5f,B.bG,null,null,null,null,null,null,null,null,null,null,null,B.I,!1,null,null,null,B.o,null)
+B.a5e=new A.a0("Masraf kayd\u0131 ba\u015far\u0131yla eklendi!",null,null,null,null,null,null,null,null,null,null)
+B.ZE=new A.ca(B.a5e,B.bG,null,null,null,null,null,null,null,null,null,null,null,B.I,!1,null,null,null,B.o,null)
 B.a4A=new A.a0("Yetki g\xfcncellenirken bir hata olu\u015ftu.",null,null,null,null,null,null,null,null,null,null)
 B.ZF=new A.ca(B.a4A,B.y,null,null,null,null,null,null,null,null,null,null,null,B.I,!1,null,null,null,B.o,null)
-B.a4V=new A.a0("L\xfctfen ge\xe7erli bir tutar girin.",null,null,null,null,null,null,null,null,null,null)
-B.ZG=new A.ca(B.a4V,B.b9,null,null,null,null,null,null,null,null,null,null,null,B.I,!1,null,null,null,B.o,null)
-B.a5v=new A.a0("Hata olu\u015ftu.",null,null,null,null,null,null,null,null,null,null)
-B.ZH=new A.ca(B.a5v,B.y,null,null,null,null,null,null,null,null,null,null,null,B.I,!1,null,null,null,B.o,null)
-B.a5c=new A.a0("Profil bilgileriniz ba\u015far\u0131yla g\xfcncellendi!",null,null,null,null,null,null,null,null,null,null)
-B.ZI=new A.ca(B.a5c,B.bG,null,null,null,null,null,null,null,null,null,null,null,B.I,!1,null,null,null,B.o,null)
-B.a5g=new A.a0("Tahsilat eklemek i\xe7in \xf6nce bir m\xfckellef olu\u015fturmal\u0131s\u0131n\u0131z.",null,null,null,null,null,null,null,null,null,null)
-B.ZJ=new A.ca(B.a5g,B.b9,null,null,null,null,null,null,null,null,null,null,null,B.I,!1,null,null,null,B.o,null)
+B.a4U=new A.a0("L\xfctfen ge\xe7erli bir tutar girin.",null,null,null,null,null,null,null,null,null,null)
+B.ZG=new A.ca(B.a4U,B.b9,null,null,null,null,null,null,null,null,null,null,null,B.I,!1,null,null,null,B.o,null)
+B.a5u=new A.a0("Hata olu\u015ftu.",null,null,null,null,null,null,null,null,null,null)
+B.ZH=new A.ca(B.a5u,B.y,null,null,null,null,null,null,null,null,null,null,null,B.I,!1,null,null,null,B.o,null)
+B.a5b=new A.a0("Profil bilgileriniz ba\u015far\u0131yla g\xfcncellendi!",null,null,null,null,null,null,null,null,null,null)
+B.ZI=new A.ca(B.a5b,B.bG,null,null,null,null,null,null,null,null,null,null,null,B.I,!1,null,null,null,B.o,null)
+B.a5f=new A.a0("Tahsilat eklemek i\xe7in \xf6nce bir m\xfckellef olu\u015fturmal\u0131s\u0131n\u0131z.",null,null,null,null,null,null,null,null,null,null)
+B.ZJ=new A.ca(B.a5f,B.b9,null,null,null,null,null,null,null,null,null,null,null,B.I,!1,null,null,null,B.o,null)
 B.a5C=new A.a0("Masraf kayd\u0131 silindi.",null,null,null,null,null,null,null,null,null,null)
 B.ZK=new A.ca(B.a5C,B.y,null,null,null,null,null,null,null,null,null,null,null,B.I,!1,null,null,null,B.o,null)
-B.a5n=new A.a0("L\xfctfen personelin ad\u0131n\u0131 ve ge\xe7erli bir e-posta adresini girin.",null,null,null,null,null,null,null,null,null,null)
-B.ZL=new A.ca(B.a5n,B.b9,null,null,null,null,null,null,null,null,null,null,null,B.I,!1,null,null,null,B.o,null)
-B.a5k=new A.a0("\u015eirket bilgileri ba\u015far\u0131yla g\xfcncellendi.",null,null,null,null,null,null,null,null,null,null)
-B.ZM=new A.ca(B.a5k,B.bG,null,null,null,null,null,null,null,null,null,null,null,B.I,!1,null,null,null,B.o,null)
-B.a5l=new A.a0("G\xf6rev olu\u015fturuldu!",null,null,null,null,null,null,null,null,null,null)
-B.ZN=new A.ca(B.a5l,B.bG,null,null,null,null,null,null,null,null,null,null,null,B.I,!1,null,null,null,B.o,null)
+B.a5m=new A.a0("L\xfctfen personelin ad\u0131n\u0131 ve ge\xe7erli bir e-posta adresini girin.",null,null,null,null,null,null,null,null,null,null)
+B.ZL=new A.ca(B.a5m,B.b9,null,null,null,null,null,null,null,null,null,null,null,B.I,!1,null,null,null,B.o,null)
+B.a5j=new A.a0("\u015eirket bilgileri ba\u015far\u0131yla g\xfcncellendi.",null,null,null,null,null,null,null,null,null,null)
+B.ZM=new A.ca(B.a5j,B.bG,null,null,null,null,null,null,null,null,null,null,null,B.I,!1,null,null,null,B.o,null)
+B.a5k=new A.a0("G\xf6rev olu\u015fturuldu!",null,null,null,null,null,null,null,null,null,null)
+B.ZN=new A.ca(B.a5k,B.bG,null,null,null,null,null,null,null,null,null,null,null,B.I,!1,null,null,null,B.o,null)
 B.a6c=new A.a0("L\xfctfen \xf6nce \u015eirket Ayarlar\u0131'ndan bir \xf6deme/hizmet kalemi ekleyin.",null,null,null,null,null,null,null,null,null,null)
 B.ZO=new A.ca(B.a6c,B.b9,null,null,null,null,null,null,null,null,null,null,null,B.I,!1,null,null,null,B.o,null)
 B.a4K=new A.a0("Dosya okunamad\u0131. L\xfctfen ba\u015fka bir dosya deneyin.",null,null,null,null,null,null,null,null,null,null)
@@ -112504,31 +112508,31 @@ B.a4x=new A.a0("Kurumsal \u015eirket Ayarlar\u0131",null,B.ag,null,null,null,nul
 B.kd=new A.m(!0,B.i,null,null,null,null,20,B.Q,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null)
 B.a4F=new A.a0("H\u0131zl\u0131 \u0130\u015flemler & Mod\xfcller",null,B.kd,null,null,null,null,null,null,null,null)
 B.a4G=new A.a0("Kurumsal M\xfc\u015fteri & Finans Y\xf6netimi",null,B.eg,B.by,null,null,null,null,null,null,null)
-B.a2F=new A.m(!0,B.ax,null,null,null,null,10,B.iW,null,0.5,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null)
-B.a4O=new A.a0("\xa9 2026 M\xfckellef Takip \u2022 T\xfcm haklar\u0131 sakl\u0131d\u0131r.NHK Yaz\u0131l\u0131m & Teknoloji \xc7\xf6z\xfcmleri",null,B.a2F,null,null,null,null,null,null,null,null)
-B.a4P=new A.a0("Yeni G\xf6rev / \u0130\u015f Emri",null,B.ag,null,null,null,null,null,null,null,null)
-B.a4Q=new A.a0("Verilen Hizmetler / \xd6deme Kalemleri",null,B.kd,null,null,null,null,null,null,null,null)
+B.a4O=new A.a0("Yeni G\xf6rev / \u0130\u015f Emri",null,B.ag,null,null,null,null,null,null,null,null)
+B.a4P=new A.a0("Verilen Hizmetler / \xd6deme Kalemleri",null,B.kd,null,null,null,null,null,null,null,null)
 B.d8=new A.a0("\u0130ptal",null,B.aA,null,null,null,null,null,null,null,null)
-B.a4S=new A.a0("Bekleyen / Gecikmi\u015f \xd6demeler",null,B.DY,null,null,null,null,null,null,null,null)
-B.a4U=new A.a0("Panele Ge\xe7",null,B.ag,null,null,null,null,null,null,null,null)
-B.a4X=new A.a0("Kendi ofisinizi (Y\xf6netici hesab\u0131) olu\u015fturun.",null,B.bA,B.by,null,null,null,null,null,null,null)
+B.a4R=new A.a0("Bekleyen / Gecikmi\u015f \xd6demeler",null,B.DY,null,null,null,null,null,null,null,null)
+B.a4T=new A.a0("Panele Ge\xe7",null,B.ag,null,null,null,null,null,null,null,null)
+B.a4W=new A.a0("Kendi ofisinizi (Y\xf6netici hesab\u0131) olu\u015fturun.",null,B.bA,B.by,null,null,null,null,null,null,null)
 B.E4=new A.m(!0,B.ax,null,null,null,null,12,B.Q,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null)
-B.a4Y=new A.a0("\u015e\u0130RKET DAVET KODUNUZ (Kalem \u0130konuna T\u0131klayarak De\u011fi\u015ftirebilirsiniz)",null,B.E4,null,null,null,null,null,null,null,null)
+B.a4X=new A.a0("\u015e\u0130RKET DAVET KODUNUZ (Kalem \u0130konuna T\u0131klayarak De\u011fi\u015ftirebilirsiniz)",null,B.E4,null,null,null,null,null,null,null,null)
 B.o9=new A.m(!0,B.Y,null,null,null,null,11,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null)
-B.a5_=new A.a0("Bekleyen Alacak",null,B.o9,null,null,null,null,null,null,null,null)
+B.a4Z=new A.a0("Bekleyen Alacak",null,B.o9,null,null,null,null,null,null,null,null)
 B.a0d=new A.m(!0,B.r,null,null,null,null,null,B.Q,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null)
-B.a50=new A.a0("Tahsilat\u0131 Kaydet",null,B.a0d,null,null,null,null,null,null,null,null)
-B.a51=new A.a0("G\xf6revi Olu\u015ftur",null,B.ag,null,null,null,null,null,null,null,null)
-B.a52=new A.a0("Sisteme Giri\u015f Yap",null,B.kc,null,null,null,null,null,null,null,null)
-B.a54=new A.a0("Toplam Bekleyen Alacak Tutar\u0131",null,B.bA,null,null,null,null,null,null,null,null)
+B.a5_=new A.a0("Tahsilat\u0131 Kaydet",null,B.a0d,null,null,null,null,null,null,null,null)
+B.a50=new A.a0("G\xf6revi Olu\u015ftur",null,B.ag,null,null,null,null,null,null,null,null)
+B.a51=new A.a0("Sisteme Giri\u015f Yap",null,B.kc,null,null,null,null,null,null,null,null)
+B.a53=new A.a0("Toplam Bekleyen Alacak Tutar\u0131",null,B.bA,null,null,null,null,null,null,null,null)
 B.a4a=new A.m(!0,B.Y,null,null,null,null,15,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null)
-B.a55=new A.a0("M\xfckellef Se\xe7in:",null,B.a4a,null,null,null,null,null,null,null,null)
-B.a57=new A.a0("Personellerinizin kay\u0131t olurken kullanaca\u011f\u0131 \xf6zel \u015firket kodunu a\u015fa\u011f\u0131dan belirleyebilirsiniz (\xd6rn: MHK_2026):",null,B.hT,null,null,null,null,null,null,null,null)
-B.a58=new A.a0("Hesab\u0131 Olu\u015ftur",null,B.ag,null,null,null,null,null,null,null,null)
-B.a5a=new A.a0("\u015e\u0130RKET DAVET KODUNUZ:",null,B.E4,null,null,null,null,null,null,null,null)
-B.a5j=new A.a0("Ofisinizde hen\xfcz hi\xe7bir finansal hareket kaydedilmemi\u015f.",null,B.bA,B.by,null,null,null,null,null,null,null)
+B.a54=new A.a0("M\xfckellef Se\xe7in:",null,B.a4a,null,null,null,null,null,null,null,null)
+B.a56=new A.a0("Personellerinizin kay\u0131t olurken kullanaca\u011f\u0131 \xf6zel \u015firket kodunu a\u015fa\u011f\u0131dan belirleyebilirsiniz (\xd6rn: MHK_2026):",null,B.hT,null,null,null,null,null,null,null,null)
+B.a57=new A.a0("Hesab\u0131 Olu\u015ftur",null,B.ag,null,null,null,null,null,null,null,null)
+B.a59=new A.a0("\u015e\u0130RKET DAVET KODUNUZ:",null,B.E4,null,null,null,null,null,null,null,null)
+B.a5i=new A.a0("Ofisinizde hen\xfcz hi\xe7bir finansal hareket kaydedilmemi\u015f.",null,B.bA,B.by,null,null,null,null,null,null,null)
 B.E5=new A.a0("Kapat",null,B.aA,null,null,null,null,null,null,null,null)
-B.a5q=new A.a0("Masraf\u0131 Kaydet",null,B.ag,null,null,null,null,null,null,null,null)
+B.a5p=new A.a0("Masraf\u0131 Kaydet",null,B.ag,null,null,null,null,null,null,null,null)
+B.a2F=new A.m(!0,B.ax,null,null,null,null,10,B.iW,null,0.5,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null)
+B.a5x=new A.a0("\xa9 2026 M\xfckellef Takip \u2022 T\xfcm haklar\u0131 sakl\u0131d\u0131r.MHK Yaz\u0131l\u0131m \xc7\xf6z\xfcmleri",null,B.a2F,null,null,null,null,null,null,null,null)
 B.a5y=new A.a0("Ekibe Kat\u0131l",null,B.ag,null,null,null,null,null,null,null,null)
 B.a5z=new A.a0("Bilgileri Kopyala",null,B.ag,null,null,null,null,null,null,null,null)
 B.a5A=new A.a0("Ekibimden \xc7\u0131kar",null,B.a5,null,null,null,null,null,null,null,null)
@@ -112565,16 +112569,16 @@ B.a6h=new A.a0("Son Finansal Hareketler",null,B.kd,null,null,null,null,null,null
 B.a6i=new A.a0("Masraf / Gider Ekle",null,B.ag,null,null,null,null,null,null,null,null)
 B.a6j=new A.a0("Resmi Firma Detaylar\u0131",null,B.kd,null,null,null,null,null,null,null,null)
 B.a6m=new A.a0("Tahakkuk Tan\u0131mla",null,B.ag,null,null,null,null,null,null,null,null)
-B.a6s=new A.a0("Ekip & Yetki Y\xf6netimi",null,B.ag,null,null,null,null,null,null,null,null)
-B.a6t=new A.a0('\ud83d\udca1 Personellerinizi i\xe7erideki "Ekip Y\xf6netimi" men\xfcs\xfcnden do\u011frudan kendiniz olu\u015fturabilir veya bu kodu vererek kat\u0131lmalar\u0131n\u0131 sa\u011flayabilirsiniz.',null,B.DW,null,null,null,null,null,null,null,null)
-B.a6u=new A.a0("Kaydet",null,B.ag,null,null,null,null,null,null,null,null)
+B.a6r=new A.a0("\xa9 2026 M\xfckellef Takip Sistemi \u2022 MHK Yaz\u0131l\u0131m ",null,B.oa,B.by,null,null,null,null,null,null,null)
+B.a6t=new A.a0("Ekip & Yetki Y\xf6netimi",null,B.ag,null,null,null,null,null,null,null,null)
+B.a6u=new A.a0('\ud83d\udca1 Personellerinizi i\xe7erideki "Ekip Y\xf6netimi" men\xfcs\xfcnden do\u011frudan kendiniz olu\u015fturabilir veya bu kodu vererek kat\u0131lmalar\u0131n\u0131 sa\u011flayabilirsiniz.',null,B.DW,null,null,null,null,null,null,null,null)
+B.a6v=new A.a0("Kaydet",null,B.ag,null,null,null,null,null,null,null,null)
 B.E6=new A.a0("Yeni G\xf6rev",null,B.ag,null,null,null,null,null,null,null,null)
-B.a6w=new A.a0("\u015eirket Bilgilerini Kaydet",null,B.kc,null,null,null,null,null,null,null,null)
-B.a6x=new A.a0("Net Tahsilat",null,B.o9,null,null,null,null,null,null,null,null)
-B.a6z=new A.a0("Y\xf6neticinizden ald\u0131\u011f\u0131n\u0131z \u015eirket Kodu ile kat\u0131l\u0131n.",null,B.bA,B.by,null,null,null,null,null,null,null)
-B.a6A=new A.a0("Yeni \u015eirket Kurulumu",null,B.ob,null,null,null,null,null,null,null,null)
+B.a6x=new A.a0("\u015eirket Bilgilerini Kaydet",null,B.kc,null,null,null,null,null,null,null,null)
+B.a6y=new A.a0("Net Tahsilat",null,B.o9,null,null,null,null,null,null,null,null)
+B.a6A=new A.a0("Y\xf6neticinizden ald\u0131\u011f\u0131n\u0131z \u015eirket Kodu ile kat\u0131l\u0131n.",null,B.bA,B.by,null,null,null,null,null,null,null)
+B.a6B=new A.a0("Yeni \u015eirket Kurulumu",null,B.ob,null,null,null,null,null,null,null,null)
 B.E7=new A.a0("Yeni Ekip \xdcyesi Olu\u015ftur",null,B.ag,null,null,null,null,null,null,null,null)
-B.a6F=new A.a0("\xa9 2026 M\xfckellef Takip Sistemi \u2022 NHK Yaz\u0131l\u0131m & Teknolojileri",null,B.oa,B.by,null,null,null,null,null,null,null)
 B.a6G=new A.a0("Son Finansal Hareketler",null,B.kc,null,null,null,null,null,null,null,null)
 B.a6H=new A.a0("G\xf6rev & \u0130\u015f Takibi (Kanban)",null,B.ag,null,null,null,null,null,null,null,null)
 B.a6J=new A.a0("Ekip \xfcyesinin bilgilerini, \u015fifresini ve yetki d\xfczeyini belirleyin. Hesap an\u0131nda sizin ofisinize ba\u011fl\u0131 olarak a\xe7\u0131lacakt\u0131r.",null,B.hT,null,null,null,null,null,null,null,null)

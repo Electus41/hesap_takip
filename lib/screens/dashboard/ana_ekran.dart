@@ -238,7 +238,7 @@ class _AnaEkranState extends State<AnaEkran> {
         );
       }
 
-      double bekleyen = 0.0;
+      double toplamBorc = 0.0;
       double gelir = 0.0;
       List<Map<String, dynamic>> newAlerts = [];
       final today = DateTime.now();
@@ -259,7 +259,7 @@ class _AnaEkranState extends State<AnaEkran> {
         if (isPaid) {
           gelir += amount;
         } else {
-          bekleyen += amount;
+          toplamBorc += amount;
           if (t['due_date'] != null) {
             try {
               final dueDate = DateTime.parse(t['due_date'].toString());
@@ -278,6 +278,10 @@ class _AnaEkranState extends State<AnaEkran> {
           }
         }
       }
+
+      // Net Bekleyen Alacak = Toplam Borç - Yapılan Tahsilat (Gelir)
+      double bekleyen = toplamBorc - gelir;
+      if (bekleyen < 0) bekleyen = 0.0;
 
       newAlerts.sort(
         (a, b) =>
@@ -1660,7 +1664,6 @@ class _AnaEkranState extends State<AnaEkran> {
             ),
             const Spacer(),
 
-            // NHK YAZILIM & TEKNOLOJİ İMZASI VE LİSANS BİLGİSİ
             Container(
               margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               padding: const EdgeInsets.all(12),
@@ -1705,7 +1708,7 @@ class _AnaEkranState extends State<AnaEkran> {
                   ),
                   const Divider(color: Colors.white12, height: 12),
                   const Text(
-                    '© 2026 Mükellef Takip • Tüm hakları saklıdır.NHK Yazılım & Teknoloji Çözümleri',
+                    '© 2026 Mükellef Takip • Tüm hakları saklıdır.MHK Yazılım Çözümleri',
                     style: TextStyle(
                       color: Colors.white54,
                       fontSize: 10,
