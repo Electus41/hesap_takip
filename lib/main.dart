@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:intl/date_symbol_data_local.dart'; // <-- Türkçe tarih formatı için eklendi
 import 'screens/dashboard/ana_ekran.dart';
 import 'screens/auth/login_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Türkçe tarih formatı (tr_TR) verilerini yüklüyoruz
+  await initializeDateFormatting('tr_TR', null);
 
   await Supabase.initialize(
     url: 'https://plgsxbpgbqjvrytgusjk.supabase.co',
