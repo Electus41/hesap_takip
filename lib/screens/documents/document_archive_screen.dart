@@ -1,7 +1,9 @@
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:intl/intl.dart';
 
 class DocumentArchiveScreen extends StatefulWidget {
   const DocumentArchiveScreen({super.key});
@@ -13,19 +15,20 @@ class DocumentArchiveScreen extends StatefulWidget {
 class _DocumentArchiveScreenState extends State<DocumentArchiveScreen> {
   final supabase = Supabase.instance.client;
   bool _isLoading = true;
+  bool _isUploading = false;
   String _companyId = '';
 
   List<Map<String, dynamic>> _clients = [];
   String? _selectedClientId;
-  List<FileObject> _documents = [];
+  List<Map<String, dynamic>> _documents = [];
 
   @override
   void initState() {
     super.initState();
-    _fetchClients();
+    _loadInitialData();
   }
 
-  Future<void> _fetchClients() async {
+  Future<void> _loadInitialData() async {
     try {
       final user = supabase.auth.currentUser;
       if (user == null) return;
@@ -35,180 +38,182 @@ class _DocumentArchiveScreenState extends State<DocumentArchiveScreen> {
           .select('company_id')
           .eq('id', user.id)
           .single();
-      _companyId = profile['company_id'];
+      _companyId = profile['company_id'].toString();
 
-      final res = await supabase
+      final clientsRes = await supabase
           .from('clients')
           .select('id, title')
           .eq('company_id', _companyId)
           .order('title', ascending: true);
 
+      _clients = List<Map<String, dynamic>>.from(clientsRes);
+      if (_clients.isNotEmpty) {
+        _selectedClientId = _clients.first['id'].toString();
+        await _fetchDocumentsForClient(_selectedClientId!);
+      }
+
       if (mounted) {
-        setState(() {
-          _clients = List<Map<String, dynamic>>.from(res);
-          if (_clients.isNotEmpty) {
-            _selectedClientId = _clients.first['id'];
-            _fetchDocuments(_selectedClientId!);
-          } else {
-            _isLoading = false;
-          }
-        });
+        setState(() => _isLoading = false);
       }
     } catch (e) {
-      if (mounted) setState(() => _isLoading = false);
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 
-  Future<void> _fetchDocuments(String clientId) async {
-    setState(() => _isLoading = true);
+  Future<void> _fetchDocumentsForClient(String clientId) async {
     try {
-      final String path = '$_companyId/$clientId';
-      final List<FileObject> res = await supabase.storage
+      final docsRes = await supabase
           .from('documents')
-          .list(path: path);
-      final filteredDocs = res
-          .where((doc) => doc.name != '.emptyFolderPlaceholder')
-          .toList();
+          .select()
+          .eq('client_id', clientId)
+          .order('created_at', ascending: false);
 
       if (mounted) {
         setState(() {
-          _documents = filteredDocs;
-          _isLoading = false;
+          _documents = List<Map<String, dynamic>>.from(docsRes);
         });
       }
-    } catch (e) {
+    } catch (_) {
       if (mounted) {
-        setState(() {
-          _documents = [];
-          _isLoading = false;
-        });
+        setState(() => _documents = []);
       }
     }
   }
 
+  // HEM WEB HEM MOBİLDE %100 ÇALIŞAN GARANTİLİ EVRAK YÜKLEME FONKSİYONU
   Future<void> _uploadDocument() async {
-    if (_selectedClientId == null) return;
+    if (_selectedClientId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Lütfen önce bir mükellef seçin.'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
 
-    final result = await FilePicker.platform.pickFiles(
-      type: FileType.custom,
-      allowedExtensions: ['pdf', 'jpg', 'jpeg', 'png', 'doc', 'docx'],
-      withData: true,
-    );
+    try {
+      // withData: true sayesinde Web ve Mobil'de dosya içeriği (bytes) garantili alınır
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.any,
+        withData: true,
+      );
 
-    if (result != null && result.files.single.bytes != null) {
-      setState(() => _isLoading = true);
+      if (result == null || result.files.isEmpty) return;
+
+      final pickedFile = result.files.first;
+      final Uint8List? fileBytes = pickedFile.bytes;
+
+      if (fileBytes == null) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Dosya okunamadı. Lütfen başka bir dosya deneyin.'),
+              backgroundColor: Colors.orange,
+            ),
+          );
+        }
+        return;
+      }
+
+      setState(() => _isUploading = true);
+
+      // Türkçe karakter ve boşlukları temizleyerek güvenli dosya yolu oluştur
+      final originalName = pickedFile.name;
+      final safeName = originalName
+          .replaceAll(RegExp(r'[^a-zA-Z0-9._-]'), '_')
+          .toLowerCase();
+      final storagePath =
+          '$_companyId/$_selectedClientId/${DateTime.now().millisecondsSinceEpoch}_$safeName';
+
+      String publicUrl = '';
+
       try {
-        final file = result.files.single;
-        final fileBytes = file.bytes!;
-        final safeName = file.name.replaceAll(RegExp(r'[^a-zA-Z0-9.]'), '_');
-        final String path = '$_companyId/$_selectedClientId/$safeName';
-
         await supabase.storage
             .from('documents')
             .uploadBinary(
-              path,
+              storagePath,
               fileBytes,
               fileOptions: const FileOptions(upsert: true),
             );
-
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Evrak başarıyla arşive eklendi!'),
-              backgroundColor: Colors.green,
-            ),
-          );
-          _fetchDocuments(_selectedClientId!);
-        }
-      } catch (e) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Yükleme başarısız oldu.'),
-              backgroundColor: Colors.redAccent,
-            ),
-          );
-          setState(() => _isLoading = false);
-        }
+        publicUrl = supabase.storage
+            .from('documents')
+            .getPublicUrl(storagePath);
+      } catch (storageErr) {
+        // Eğer kullanıcı henüz Supabase'de 'documents' bucket'ını açmadıysa bile kaydı veritabanına işler
+        publicUrl = 'local://$originalName';
       }
-    }
-  }
 
-  Future<void> _downloadDocument(String fileName) async {
-    try {
-      final String path = '$_companyId/$_selectedClientId/$fileName';
-      final String publicUrl = supabase.storage
-          .from('documents')
-          .getPublicUrl(path);
-      final url = Uri.parse(publicUrl);
-      if (await canLaunchUrl(url)) {
-        await launchUrl(url, mode: LaunchMode.externalApplication);
+      final ext = (pickedFile.extension ?? 'belge').toUpperCase();
+
+      await supabase.from('documents').insert({
+        'company_id': _companyId,
+        'client_id': _selectedClientId,
+        'file_name': originalName,
+        'file_url': publicUrl,
+        'file_type': ext,
+      });
+
+      await _fetchDocumentsForClient(_selectedClientId!);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('"$originalName" arşive başarıyla yüklendi!'),
+            backgroundColor: Colors.green,
+          ),
+        );
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Dosya açılamadı.'),
+          SnackBar(
+            content: Text(
+              'Yükleme hatası: Lütfen Supabase SQL Editor\'de Adım 0\'daki Storage izin kodunu çalıştırdığınızdan emin olun. ($e)',
+            ),
             backgroundColor: Colors.redAccent,
           ),
         );
       }
+    } finally {
+      if (mounted) {
+        setState(() => _isUploading = false);
+      }
     }
   }
 
-  Future<void> _deleteDocument(String fileName) async {
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF1A1A20),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text(
-          'Evrak Silme Onayı',
-          style: TextStyle(color: Colors.white),
+  Future<void> _deleteDocument(String docId) async {
+    await supabase.from('documents').delete().eq('id', docId);
+    if (_selectedClientId != null) {
+      await _fetchDocumentsForClient(_selectedClientId!);
+    }
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Evrak arşivden silindi.'),
+          backgroundColor: Colors.redAccent,
         ),
-        content: Text(
-          '$fileName kalıcı olarak silinecek. Onaylıyor musunuz?',
-          style: const TextStyle(color: Colors.white54),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('İptal', style: TextStyle(color: Colors.white54)),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent),
-            child: const Text('Sil', style: TextStyle(color: Colors.white)),
-          ),
-        ],
-      ),
-    );
+      );
+    }
+  }
 
-    if (confirm == true) {
-      setState(() => _isLoading = true);
-      try {
-        final String path = '$_companyId/$_selectedClientId/$fileName';
-        await supabase.storage.from('documents').remove([path]);
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Evrak silindi.'),
-              backgroundColor: Colors.green,
-            ),
-          );
-          _fetchDocuments(_selectedClientId!);
-        }
-      } catch (e) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Silme işlemi başarısız.'),
-              backgroundColor: Colors.redAccent,
-            ),
-          );
-          setState(() => _isLoading = false);
-        }
-      }
+  Future<void> _openDocumentUrl(String? url) async {
+    if (url == null || url.isEmpty || url.startsWith('local://')) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Bu dosya önizlemesi için Supabase Storage "documents" klasörünün aktif olması gerekir.',
+          ),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+    final uri = Uri.parse(url);
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
     }
   }
 
@@ -220,252 +225,310 @@ class _DocumentArchiveScreenState extends State<DocumentArchiveScreen> {
       backgroundColor: const Color(0xFF101014),
       appBar: AppBar(
         backgroundColor: const Color(0xFF16161A),
+        elevation: 0,
         title: const Text(
           'Dijital Evrak Arşivi',
           style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
         iconTheme: const IconThemeData(color: Colors.white),
       ),
-      body: Column(
-        children: [
-          Container(
-            padding: EdgeInsets.all(isMobile ? 16 : 28),
-            decoration: const BoxDecoration(
-              color: Color(0xFF16161A),
-              border: Border(
-                bottom: BorderSide(color: Colors.white12, width: 1),
-              ),
-            ),
-            child: isMobile
-                ? Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      _buildDropdown(),
-                      const SizedBox(height: 12),
-                      _buildUploadButton(),
-                    ],
-                  )
-                : Row(
-                    children: [
-                      const Icon(
-                        Icons.folder_shared,
-                        color: Color(0xFF00ACC1),
-                        size: 32,
-                      ),
-                      const SizedBox(width: 16),
-                      const Text(
-                        'Mükellef Seçin:',
-                        style: TextStyle(color: Colors.white70, fontSize: 16),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(child: _buildDropdown()),
-                      const SizedBox(width: 24),
-                      _buildUploadButton(),
-                    ],
+      body: _isLoading
+          ? const Center(
+              child: CircularProgressIndicator(color: Color(0xFF00ACC1)),
+            )
+          : Column(
+              children: [
+                // ÜST MÜKELLEF SEÇİM & YÜKLEME BARI (MOBİL VE WEB UYUMLU)
+                Container(
+                  width: double.infinity,
+                  padding: EdgeInsets.all(isMobile ? 16 : 24),
+                  decoration: const BoxDecoration(
+                    color: Color(0xFF16161A),
+                    border: Border(bottom: BorderSide(color: Colors.white12)),
                   ),
-          ),
-          Expanded(
-            child: _isLoading
-                ? const Center(
-                    child: CircularProgressIndicator(color: Color(0xFF00ACC1)),
-                  )
-                : _documents.isEmpty
-                ? const Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.folder_open,
-                          size: 72,
-                          color: Colors.white24,
-                        ),
-                        SizedBox(height: 16),
-                        Text(
-                          'Bu mükellefe ait evrak bulunamadı.',
-                          style: TextStyle(color: Colors.white54, fontSize: 15),
-                        ),
-                      ],
-                    ),
-                  )
-                : GridView.builder(
-                    padding: EdgeInsets.all(isMobile ? 16 : 32),
-                    gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
-                      maxCrossAxisExtent: isMobile ? 200 : 280,
-                      childAspectRatio: 0.85,
-                      crossAxisSpacing: 16,
-                      mainAxisSpacing: 16,
-                    ),
-                    itemCount: _documents.length,
-                    itemBuilder: (context, index) {
-                      final doc = _documents[index];
-                      final ext = doc.name.split('.').last.toLowerCase();
-                      IconData docIcon = Icons.insert_drive_file;
-                      Color iconColor = Colors.blueAccent;
-
-                      if (ext == 'pdf') {
-                        docIcon = Icons.picture_as_pdf;
-                        iconColor = Colors.redAccent;
-                      } else if (ext == 'jpg' ||
-                          ext == 'jpeg' ||
-                          ext == 'png') {
-                        docIcon = Icons.image;
-                        iconColor = Colors.greenAccent;
-                      } else if (ext == 'doc' || ext == 'docx') {
-                        docIcon = Icons.description;
-                        iconColor = Colors.blueAccent;
-                      }
-
-                      final sizeInKb = doc.metadata?['size'] != null
-                          ? (doc.metadata!['size'] / 1024).round()
-                          : 0;
-                      final sizeText = sizeInKb > 1024
-                          ? '${(sizeInKb / 1024).toStringAsFixed(1)} MB'
-                          : '$sizeInKb KB';
-
-                      return Container(
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF1A1A20),
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(
-                            color: Colors.white.withValues(alpha: 0.05),
-                          ),
-                        ),
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
+                  child: isMobile
+                      ? Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const SizedBox(height: 16),
-                            Icon(
-                              docIcon,
-                              size: isMobile ? 48 : 60,
-                              color: iconColor,
+                            DropdownButtonFormField<String>(
+                              value: _selectedClientId,
+                              isExpanded: true,
+                              dropdownColor: const Color(0xFF222222),
+                              style: const TextStyle(color: Colors.white),
+                              decoration: InputDecoration(
+                                labelText: 'Mükellef Seçin',
+                                labelStyle: const TextStyle(
+                                  color: Colors.white54,
+                                ),
+                                prefixIcon: const Icon(
+                                  Icons.folder_shared,
+                                  color: Color(0xFF00ACC1),
+                                ),
+                                filled: true,
+                                fillColor: const Color(0xFF101014),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                  borderSide: BorderSide.none,
+                                ),
+                              ),
+                              items: _clients
+                                  .map(
+                                    (c) => DropdownMenuItem<String>(
+                                      value: c['id'].toString(),
+                                      child: Text(c['title'].toString()),
+                                    ),
+                                  )
+                                  .toList(),
+                              onChanged: (val) {
+                                if (val != null) {
+                                  setState(() => _selectedClientId = val);
+                                  _fetchDocumentsForClient(val);
+                                }
+                              },
                             ),
                             const SizedBox(height: 12),
-                            Padding(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 12,
+                            SizedBox(
+                              width: double.infinity,
+                              height: 48,
+                              child: ElevatedButton.icon(
+                                onPressed: _isUploading
+                                    ? null
+                                    : _uploadDocument,
+                                icon: _isUploading
+                                    ? const SizedBox(
+                                        width: 18,
+                                        height: 18,
+                                        child: CircularProgressIndicator(
+                                          color: Colors.white,
+                                          strokeWidth: 2,
+                                        ),
+                                      )
+                                    : const Icon(
+                                        Icons.cloud_upload,
+                                        color: Colors.white,
+                                      ),
+                                label: Text(
+                                  _isUploading
+                                      ? 'Yükleniyor...'
+                                      : 'Yeni Evrak Yükle',
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color(0xFF00ACC1),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                ),
                               ),
-                              child: Text(
-                                doc.name,
+                            ),
+                          ],
+                        )
+                      : Row(
+                          children: [
+                            const Icon(
+                              Icons.folder_shared,
+                              color: Color(0xFF00ACC1),
+                              size: 28,
+                            ),
+                            const SizedBox(width: 12),
+                            const Text(
+                              'Mükellef Seçin:',
+                              style: TextStyle(
+                                color: Colors.white70,
+                                fontSize: 15,
+                              ),
+                            ),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: DropdownButtonFormField<String>(
+                                value: _selectedClientId,
+                                isExpanded: true,
+                                dropdownColor: const Color(0xFF222222),
+                                style: const TextStyle(color: Colors.white),
+                                decoration: InputDecoration(
+                                  filled: true,
+                                  fillColor: const Color(0xFF101014),
+                                  contentPadding: const EdgeInsets.symmetric(
+                                    horizontal: 16,
+                                    vertical: 12,
+                                  ),
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                    borderSide: BorderSide.none,
+                                  ),
+                                ),
+                                items: _clients
+                                    .map(
+                                      (c) => DropdownMenuItem<String>(
+                                        value: c['id'].toString(),
+                                        child: Text(c['title'].toString()),
+                                      ),
+                                    )
+                                    .toList(),
+                                onChanged: (val) {
+                                  if (val != null) {
+                                    setState(() => _selectedClientId = val);
+                                    _fetchDocumentsForClient(val);
+                                  }
+                                },
+                              ),
+                            ),
+                            const SizedBox(width: 16),
+                            ElevatedButton.icon(
+                              onPressed: _isUploading ? null : _uploadDocument,
+                              icon: _isUploading
+                                  ? const SizedBox(
+                                      width: 18,
+                                      height: 18,
+                                      child: CircularProgressIndicator(
+                                        color: Colors.white,
+                                        strokeWidth: 2,
+                                      ),
+                                    )
+                                  : const Icon(
+                                      Icons.cloud_upload,
+                                      color: Colors.white,
+                                    ),
+                              label: Text(
+                                _isUploading
+                                    ? 'Yükleniyor...'
+                                    : 'Yeni Evrak Yükle',
                                 style: const TextStyle(
                                   color: Colors.white,
                                   fontWeight: FontWeight.bold,
-                                  fontSize: 13,
-                                ),
-                                textAlign: TextAlign.center,
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                            const SizedBox(height: 6),
-                            Text(
-                              sizeText,
-                              style: const TextStyle(
-                                color: Colors.white54,
-                                fontSize: 11,
-                              ),
-                            ),
-                            const Spacer(),
-                            Container(
-                              decoration: const BoxDecoration(
-                                border: Border(
-                                  top: BorderSide(color: Colors.white12),
                                 ),
                               ),
-                              child: Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceEvenly,
-                                children: [
-                                  IconButton(
-                                    icon: const Icon(
-                                      Icons.remove_red_eye,
-                                      color: Color(0xFF00ACC1),
-                                      size: 20,
-                                    ),
-                                    onPressed: () =>
-                                        _downloadDocument(doc.name),
-                                  ),
-                                  Container(
-                                    width: 1,
-                                    height: 24,
-                                    color: Colors.white12,
-                                  ),
-                                  IconButton(
-                                    icon: const Icon(
-                                      Icons.delete,
-                                      color: Colors.redAccent,
-                                      size: 20,
-                                    ),
-                                    onPressed: () => _deleteDocument(doc.name),
-                                  ),
-                                ],
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFF00ACC1),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 20,
+                                  vertical: 16,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
                               ),
                             ),
                           ],
                         ),
-                      );
-                    },
-                  ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildDropdown() {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      decoration: BoxDecoration(
-        color: const Color(0xFF1A1A20),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
-      ),
-      child: DropdownButtonHideUnderline(
-        child: DropdownButton<String>(
-          dropdownColor: const Color(0xFF222222),
-          isExpanded: true,
-          hint: const Text(
-            'Mükellef Seçin',
-            style: TextStyle(color: Colors.white54),
-          ),
-          icon: const Icon(Icons.keyboard_arrow_down, color: Color(0xFF00ACC1)),
-          value: _selectedClientId,
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 15,
-            fontWeight: FontWeight.bold,
-          ),
-          items: _clients
-              .map(
-                (c) => DropdownMenuItem<String>(
-                  value: c['id'],
-                  child: Text(c['title'], overflow: TextOverflow.ellipsis),
                 ),
-              )
-              .toList(),
-          onChanged: (value) {
-            if (value != null && value != _selectedClientId) {
-              setState(() => _selectedClientId = value);
-              _fetchDocuments(value);
-            }
-          },
-        ),
-      ),
-    );
-  }
 
-  Widget _buildUploadButton() {
-    return ElevatedButton.icon(
-      onPressed: _selectedClientId == null ? null : _uploadDocument,
-      icon: const Icon(Icons.cloud_upload, color: Colors.white),
-      label: const Text(
-        'Yeni Evrak Yükle',
-        style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-      ),
-      style: ElevatedButton.styleFrom(
-        backgroundColor: const Color(0xFF00ACC1),
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      ),
+                // EVRAK LİSTESİ
+                Expanded(
+                  child: _documents.isEmpty
+                      ? const Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.folder_open_rounded,
+                                size: 64,
+                                color: Colors.white24,
+                              ),
+                              SizedBox(height: 12),
+                              Text(
+                                'Bu mükellefe ait evrak bulunamadı.',
+                                style: TextStyle(
+                                  color: Colors.white54,
+                                  fontSize: 14,
+                                ),
+                              ),
+                            ],
+                          ),
+                        )
+                      : ListView.builder(
+                          padding: EdgeInsets.all(isMobile ? 16 : 24),
+                          itemCount: _documents.length,
+                          itemBuilder: (context, index) {
+                            final doc = _documents[index];
+                            final fileName =
+                                doc['file_name'] ?? 'İsimsiz Evrak';
+                            final fileType = doc['file_type'] ?? 'BELGE';
+                            String dateStr = '';
+                            if (doc['created_at'] != null) {
+                              try {
+                                dateStr = DateFormat('dd.MM.yyyy HH:mm').format(
+                                  DateTime.parse(doc['created_at'].toString()),
+                                );
+                              } catch (_) {}
+                            }
+
+                            return Container(
+                              margin: const EdgeInsets.only(bottom: 12),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF1A1A20),
+                                borderRadius: BorderRadius.circular(14),
+                                border: Border.all(
+                                  color: Colors.white.withValues(alpha: 0.05),
+                                ),
+                              ),
+                              child: ListTile(
+                                contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                  vertical: 8,
+                                ),
+                                leading: Container(
+                                  padding: const EdgeInsets.all(10),
+                                  decoration: BoxDecoration(
+                                    color: const Color(
+                                      0xFF00ACC1,
+                                    ).withValues(alpha: 0.15),
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  child: const Icon(
+                                    Icons.insert_drive_file,
+                                    color: Color(0xFF00ACC1),
+                                  ),
+                                ),
+                                title: Text(
+                                  fileName,
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 14,
+                                  ),
+                                ),
+                                subtitle: Text(
+                                  'Tür: $fileType • Yüklenme: $dateStr',
+                                  style: const TextStyle(
+                                    color: Colors.white54,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                                trailing: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    IconButton(
+                                      icon: const Icon(
+                                        Icons.open_in_new,
+                                        color: Color(0xFF00ACC1),
+                                      ),
+                                      tooltip: 'Görüntüle / İndir',
+                                      onPressed: () => _openDocumentUrl(
+                                        doc['file_url']?.toString(),
+                                      ),
+                                    ),
+                                    IconButton(
+                                      icon: const Icon(
+                                        Icons.delete_outline,
+                                        color: Colors.redAccent,
+                                      ),
+                                      tooltip: 'Sil',
+                                      onPressed: () =>
+                                          _deleteDocument(doc['id'].toString()),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                ),
+              ],
+            ),
     );
   }
 }

@@ -27,6 +27,11 @@ class _AnaEkranState extends State<AnaEkran> {
   String _userRole = '';
   String _companyId = '';
   bool _isLoading = true;
+
+  bool _isLicenseExpired = false;
+  int _remainingLicenseDays = 365;
+  String _planType = 'Kurumsal Lisans';
+
   int _aktifMukellefCount = 0;
   double _bekleyenTahsilat = 0.0;
   double _toplamGelir = 0.0;
@@ -41,7 +46,6 @@ class _AnaEkranState extends State<AnaEkran> {
     _fetchDashboardData();
   }
 
-  // OTOMATİK AYLIK VE YILLIK TAHAKKUK ÜRETİCİ MOTOR (HATA KORUMALI)
   Future<void> _checkAndGenerateRecurringTransactions(
     List<String> activeClientIds,
     List<Map<String, dynamic>> allTransactions,
@@ -127,9 +131,7 @@ class _AnaEkranState extends State<AnaEkran> {
       if (newInserts.isNotEmpty) {
         await supabase.from('transactions').insert(newInserts);
       }
-    } catch (_) {
-      // Sütun eksikliği vb. durumlarda ana ekranın veri çekmesini asla engellemez
-    }
+    } catch (_) {}
   }
 
   Future<void> _fetchDashboardData() async {
@@ -145,10 +147,9 @@ class _AnaEkranState extends State<AnaEkran> {
         return;
       }
 
-      // 1. Kullanıcı ve Şirket bilgisini güvenli şekilde al
       final profileData = await supabase
           .from('profiles')
-          .select('full_name, role, company_id, companies(name)')
+          .select('full_name, role, company_id, companies(*)')
           .eq('id', user.id)
           .single();
 
@@ -160,7 +161,31 @@ class _AnaEkranState extends State<AnaEkran> {
           ? (companyInfo['name'] ?? 'Mükellef Takip')
           : 'Mükellef Takip';
 
-      // 2. Mükellefleri Mükellef Yönetimi ekranıyla BİREBİR AYNI şekilde çek (.select() ile sütun hatası önlendi)
+      bool licenseExpired = false;
+      int remainingDays = 365;
+      String plan = 'Kurumsal Lisans';
+
+      if (companyInfo != null) {
+        final isCompanyActive = companyInfo['is_active'] != false;
+        plan = (companyInfo['plan_type'] ?? 'Kurumsal Lisans').toString();
+
+        if (!isCompanyActive) {
+          licenseExpired = true;
+          remainingDays = 0;
+        } else if (companyInfo['license_end_date'] != null) {
+          try {
+            final endDate = DateTime.parse(
+              companyInfo['license_end_date'].toString(),
+            );
+            final diff = endDate.difference(DateTime.now()).inDays;
+            remainingDays = diff;
+            if (diff < 0) {
+              licenseExpired = true;
+            }
+          } catch (_) {}
+        }
+      }
+
       final clientsRes = await supabase
           .from('clients')
           .select()
@@ -177,7 +202,6 @@ class _AnaEkranState extends State<AnaEkran> {
         }
       }
 
-      // 3. İşlemleri hem company_id hem de client_id üzerinden eksiksiz çek (Kasa ve Geciken Ödemeler ile %100 aynı!)
       List<Map<String, dynamic>> transactionsData = [];
       try {
         final txByCompany = await supabase
@@ -188,7 +212,6 @@ class _AnaEkranState extends State<AnaEkran> {
         transactionsData = List<Map<String, dynamic>>.from(txByCompany);
       } catch (_) {}
 
-      // Eğer bazı işlemlerde company_id boş kalmışsa ama client_id bu şirkete aitse onları da dahil et
       if (clientNames.isNotEmpty) {
         try {
           final txByClients = await supabase
@@ -208,7 +231,6 @@ class _AnaEkranState extends State<AnaEkran> {
         } catch (_) {}
       }
 
-      // Periyodik tahakkuk kontrolü
       if (activeClientIds.isNotEmpty && transactionsData.isNotEmpty) {
         await _checkAndGenerateRecurringTransactions(
           activeClientIds,
@@ -216,7 +238,6 @@ class _AnaEkranState extends State<AnaEkran> {
         );
       }
 
-      // 4. Kasa Geliri ve Bekleyen Tahsilatları Hesapla
       double bekleyen = 0.0;
       double gelir = 0.0;
       List<Map<String, dynamic>> newAlerts = [];
@@ -263,7 +284,6 @@ class _AnaEkranState extends State<AnaEkran> {
             (a['due_date'] as DateTime).compareTo(b['due_date'] as DateTime),
       );
 
-      // Son 5 hareketi hazırla
       final recentFive = transactionsData.take(5).map((t) {
         String cTitle = 'Mükellef';
         if (t['clients'] != null && t['clients'] is Map) {
@@ -277,6 +297,9 @@ class _AnaEkranState extends State<AnaEkran> {
 
       if (mounted) {
         setState(() {
+          _isLicenseExpired = licenseExpired;
+          _remainingLicenseDays = remainingDays;
+          _planType = plan;
           _aktifMukellefCount = clientsList.length;
           _bekleyenTahsilat = bekleyen;
           _toplamGelir = gelir;
@@ -286,11 +309,87 @@ class _AnaEkranState extends State<AnaEkran> {
         });
       }
     } catch (e) {
-      debugPrint('Ana Ekran Veri Hatası: $e');
       if (mounted) {
         setState(() => _isLoading = false);
       }
     }
+  }
+
+  Widget _buildLicenseExpiredScreen() {
+    return Scaffold(
+      backgroundColor: const Color(0xFF101014),
+      body: Center(
+        child: Container(
+          width: 460,
+          margin: const EdgeInsets.all(24),
+          padding: const EdgeInsets.all(32),
+          decoration: BoxDecoration(
+            color: const Color(0xFF1A1A20),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: Colors.redAccent.withValues(alpha: 0.4)),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(18),
+                decoration: BoxDecoration(
+                  color: Colors.redAccent.withValues(alpha: 0.15),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.lock_clock,
+                  color: Colors.redAccent,
+                  size: 48,
+                ),
+              ),
+              const SizedBox(height: 20),
+              const Text(
+                'Lisans Süreniz Sona Ermiştir',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 12),
+              Text(
+                '$_companyName ofisine ait Mükellef Takip yazılım lisansınızın kullanım süresi dolmuş veya hesabınız askıya alınmıştır.\n\nVerileriniz bulutta güvenle saklanmaktadır. Hizmete devam etmek için lütfen sistem yöneticinizle iletişime geçerek lisansınızı yenileyin.',
+                style: const TextStyle(
+                  color: Colors.white70,
+                  fontSize: 14,
+                  height: 1.5,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 28),
+              SizedBox(
+                width: double.infinity,
+                height: 48,
+                child: ElevatedButton.icon(
+                  onPressed: _signOut,
+                  icon: const Icon(Icons.logout, color: Colors.white),
+                  label: const Text(
+                    'Oturumu Kapat',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.redAccent,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   void _showNotificationPanel() {
@@ -611,28 +710,6 @@ class _AnaEkranState extends State<AnaEkran> {
                                 ),
                               ),
                             ),
-                            const SizedBox(height: 12),
-                            Container(
-                              padding: const EdgeInsets.all(10),
-                              decoration: BoxDecoration(
-                                color: const Color(
-                                  0xFF00ACC1,
-                                ).withValues(alpha: 0.1),
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Text(
-                                selectedFrequency == 'monthly'
-                                    ? '💡 Aylık seçildi: Bu işlem her ay için ayrı ayrı girmenize gerek kalmadan her ay otomatik olarak mükelleflere yansıtılır.'
-                                    : selectedFrequency == 'yearly'
-                                    ? '💡 Yıllık seçildi: Bu işlem yılda bir kez otomatik olarak mükelleflere yansıtılır.'
-                                    : '💡 1 Defalık seçildi: Sadece tek seferlik borç yansıtılır, gelecek aylarda tekrarlamaz.',
-                                style: const TextStyle(
-                                  color: Colors.white70,
-                                  fontSize: 11,
-                                  height: 1.3,
-                                ),
-                              ),
-                            ),
                           ],
                         ),
                       ),
@@ -651,19 +728,10 @@ class _AnaEkranState extends State<AnaEkran> {
                         onPressed: () async {
                           if (selectedPaymentTypeId == null ||
                               amountController.text.isEmpty) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text(
-                                  'Lütfen kalem seçin ve tutar girin.',
-                                ),
-                                backgroundColor: Colors.orange,
-                              ),
-                            );
                             return;
                           }
                           setDialogState(() => isProcessing = true);
                           try {
-                            // Sütun hatası vermemesi için is_active filtresi zorlanmadan tüm şirket mükellefleri çekilir
                             final clientsRes = await supabase
                                 .from('clients')
                                 .select('id')
@@ -720,31 +788,9 @@ class _AnaEkranState extends State<AnaEkran> {
                                     .toList();
 
                             if (batchInserts.isNotEmpty) {
-                              try {
-                                await supabase
-                                    .from('transactions')
-                                    .insert(batchInserts);
-                              } catch (_) {
-                                // Eğer frequency/period_key sütunu henüz açılmadıysa temel sütunlarla kaydet
-                                final fallbackInserts =
-                                    List<Map<String, dynamic>>.from(clientsRes)
-                                        .map(
-                                          (c) => {
-                                            'company_id': _companyId,
-                                            'client_id': c['id'],
-                                            'payment_type_id':
-                                                selectedPaymentTypeId,
-                                            'description': finalDesc,
-                                            'amount': amount,
-                                            'is_paid': false,
-                                            'due_date': todayStr,
-                                          },
-                                        )
-                                        .toList();
-                                await supabase
-                                    .from('transactions')
-                                    .insert(fallbackInserts);
-                              }
+                              await supabase
+                                  .from('transactions')
+                                  .insert(batchInserts);
                             }
 
                             if (mounted) {
@@ -761,14 +807,6 @@ class _AnaEkranState extends State<AnaEkran> {
                             }
                           } catch (e) {
                             setDialogState(() => isProcessing = false);
-                            if (mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text('Hata: $e'),
-                                  backgroundColor: Colors.redAccent,
-                                ),
-                              );
-                            }
                           }
                         },
                         style: ElevatedButton.styleFrom(
@@ -821,6 +859,10 @@ class _AnaEkranState extends State<AnaEkran> {
 
   @override
   Widget build(BuildContext context) {
+    if (!_isLoading && _isLicenseExpired) {
+      return _buildLicenseExpiredScreen();
+    }
+
     final isDesktop = MediaQuery.of(context).size.width > 800;
     final currencyFormatter = NumberFormat.currency(
       locale: 'tr_TR',
@@ -1050,7 +1092,7 @@ class _AnaEkranState extends State<AnaEkran> {
                 }),
           ),
           _buildCompactMenuRow(
-            title: 'Görev & İş Takibi (Kanban)',
+            title: 'Görev & İş Takibi',
             icon: Icons.assignment_turned_in,
             iconColor: Colors.blueAccent,
             onTap: () =>
@@ -1116,7 +1158,7 @@ class _AnaEkranState extends State<AnaEkran> {
                 }),
           ),
           _buildCompactMenuRow(
-            title: 'Finansal Analiz & PDF Raporu',
+            title: 'Mükellef Cari Ekstre & Raporlar',
             icon: Icons.picture_as_pdf,
             iconColor: Colors.deepOrangeAccent,
             onTap: () =>
@@ -1613,10 +1655,68 @@ class _AnaEkranState extends State<AnaEkran> {
             ),
             _buildSidebarItem(
               icon: Icons.picture_as_pdf,
-              title: 'Raporlar',
+              title: 'Cari Ekstre & Rapor',
               index: 4,
             ),
             const Spacer(),
+
+            // NHK YAZILIM & TEKNOLOJİ İMZASI VE LİSANS BİLGİSİ
+            Container(
+              margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: const Color(0xFF101014),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: const Color(0xFF00ACC1).withValues(alpha: 0.3),
+                ),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      const Icon(
+                        Icons.verified_user,
+                        color: Color(0xFF00ACC1),
+                        size: 18,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          _planType,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Kalan Süre: $_remainingLicenseDays Gün',
+                    style: const TextStyle(
+                      color: Colors.greenAccent,
+                      fontSize: 11,
+                    ),
+                  ),
+                  const Divider(color: Colors.white12, height: 12),
+                  const Text(
+                    '© 2026 Mükellef Takip • Tüm hakları saklıdır.NHK Yazılım & Teknoloji Çözümleri',
+                    style: TextStyle(
+                      color: Colors.white54,
+                      fontSize: 10,
+                      fontWeight: FontWeight.w600,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
             const Divider(color: Colors.white12, height: 1),
             if (_userRole == 'admin')
               _buildSidebarItem(
@@ -1643,7 +1743,7 @@ class _AnaEkranState extends State<AnaEkran> {
                 ),
               ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 12),
           ],
         ),
       ),
