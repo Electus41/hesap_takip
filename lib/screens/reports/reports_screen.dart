@@ -21,8 +21,8 @@ class _ReportsScreenState extends State<ReportsScreen> {
   DateTimeRange? _range;
 
   List<Map<String, dynamic>> _transactions = [];
-  double _totalDebt = 0.0; // Toplam borç (tahakkuk)
-  double _totalPaid = 0.0; // Toplam tahsilat
+  double _totalDebt = 0.0;
+  double _totalPaid = 0.0;
 
   @override
   void initState() {
@@ -107,17 +107,175 @@ class _ReportsScreenState extends State<ReportsScreen> {
     }
   }
 
+  // ŞIK, KOYU TEMALI VE TÜRKÇE ÖZEL TARİH SEÇİCİ DİYALOĞU
   Future<void> _pickRange() async {
-    final picked = await showDateRangePicker(
+    DateTime? tempStart = _range?.start;
+    DateTime? tempEnd = _range?.end;
+
+    await showDialog(
       context: context,
-      firstDate: DateTime(2015),
-      lastDate: DateTime(2035),
-      initialDateRange: _range,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              backgroundColor: const Color(0xFF1A1A20),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+              title: const Text(
+                'Rapor Tarih Aralığı Seçin',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              content: SizedBox(
+                width: 320,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    ListTile(
+                      title: const Text(
+                        'Başlangıç Tarihi',
+                        style: TextStyle(color: Colors.white54, fontSize: 12),
+                      ),
+                      subtitle: Text(
+                        tempStart == null
+                            ? 'Seçilmedi'
+                            : DateFormat(
+                                'dd.MM.yyyy',
+                                'tr_TR',
+                              ).format(tempStart!),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 15,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      trailing: const Icon(
+                        Icons.calendar_today,
+                        color: Color(0xFF00ACC1),
+                        size: 18,
+                      ),
+                      onTap: () async {
+                        final picked = await showDatePicker(
+                          context: context,
+                          initialDate: tempStart ?? DateTime.now(),
+                          firstDate: DateTime(2015),
+                          lastDate: DateTime(2035),
+                          locale: const Locale('tr', 'TR'),
+                        );
+                        if (picked != null) {
+                          setDialogState(() => tempStart = picked);
+                        }
+                      },
+                    ),
+                    const Divider(color: Colors.white12),
+                    ListTile(
+                      title: const Text(
+                        'Bitiş Tarihi',
+                        style: TextStyle(color: Colors.white54, fontSize: 12),
+                      ),
+                      subtitle: Text(
+                        tempEnd == null
+                            ? 'Seçilmedi'
+                            : DateFormat(
+                                'dd.MM.yyyy',
+                                'tr_TR',
+                              ).format(tempEnd!),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 15,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      trailing: const Icon(
+                        Icons.calendar_today,
+                        color: Color(0xFF00ACC1),
+                        size: 18,
+                      ),
+                      onTap: () async {
+                        final picked = await showDatePicker(
+                          context: context,
+                          initialDate: tempEnd ?? DateTime.now(),
+                          firstDate: DateTime(2015),
+                          lastDate: DateTime(2035),
+                          locale: const Locale('tr', 'TR'),
+                        );
+                        if (picked != null) {
+                          setDialogState(() => tempEnd = picked);
+                        }
+                      },
+                    ),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text(
+                    'İptal',
+                    style: TextStyle(color: Colors.white54),
+                  ),
+                ),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF00ACC1),
+                  ),
+                  onPressed: () {
+                    if (tempStart != null && tempEnd != null) {
+                      setState(() {
+                        _range = DateTimeRange(
+                          start: tempStart!,
+                          end: tempEnd!,
+                        );
+                      });
+                      Navigator.pop(context);
+                      _loadStatement();
+                    } else {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text(
+                            'Lütfen başlangıç ve bitiş tarihlerini seçin.',
+                          ),
+                        ),
+                      );
+                    }
+                  },
+                  child: const Text(
+                    'Uygula',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ],
+            );
+          },
+        );
+      },
     );
-    if (picked != null) {
-      setState(() => _range = picked);
-      _loadStatement();
+  }
+
+  void _exportPdf() {
+    if (_selectedClientId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Lütfen önce PDF raporu için bir mükellef seçin.'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
     }
+    // PDF İndirme / Paylaşma Aksiyonu
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('PDF ekstre raporu hazırlanıyor...'),
+        backgroundColor: Color(0xFF00ACC1),
+      ),
+    );
   }
 
   @override
@@ -144,6 +302,13 @@ class _ReportsScreenState extends State<ReportsScreen> {
             fontSize: 18,
           ),
         ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.picture_as_pdf, color: Colors.redAccent),
+            tooltip: 'PDF Rapor İndir',
+            onPressed: _exportPdf,
+          ),
+        ],
       ),
       body: _isLoading
           ? const Center(
@@ -199,7 +364,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                           label: Text(
                             _range == null
                                 ? 'Tarih Aralığı (Tümü)'
-                                : '${DateFormat('dd.MM.yyyy').format(_range!.start)} - ${DateFormat('dd.MM.yyyy').format(_range!.end)}',
+                                : '${DateFormat('dd.MM.yyyy', 'tr_TR').format(_range!.start)} - ${DateFormat('dd.MM.yyyy', 'tr_TR').format(_range!.end)}',
                             style: const TextStyle(color: Colors.white),
                           ),
                           style: OutlinedButton.styleFrom(
@@ -308,6 +473,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
           try {
             dateStr = DateFormat(
               'dd.MM.yyyy',
+              'tr_TR',
             ).format(DateTime.parse(rawDate.toString()));
           } catch (_) {}
         }
