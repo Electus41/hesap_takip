@@ -279,14 +279,8 @@ class _AnaEkranState extends State<AnaEkran> {
         }
       }
 
-      // Net Bekleyen Alacak = Toplam Borç - Yapılan Tahsilat (Gelir)
-      double bekleyen = 0.0;
-      for (var t in transactionsData) {
-        final isPaid = t['is_paid'] == true;
-        if (!isPaid) {
-          bekleyen += double.tryParse(t['amount'].toString()) ?? 0.0;
-        }
-      }
+      // Net Bekleyen Alacak doğrudan ödenmemiş borçların toplamıdır
+      double bekleyen = toplamBorc;
 
       newAlerts.sort(
         (a, b) =>
