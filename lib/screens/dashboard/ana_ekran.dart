@@ -40,6 +40,21 @@ class _AnaEkranState extends State<AnaEkran> {
   List<Map<String, dynamic>> _alerts = [];
   final supabase = Supabase.instance.client;
 
+  static const List<String> _turkishMonths = [
+    'Ocak',
+    'Şubat',
+    'Mart',
+    'Nisan',
+    'Mayıs',
+    'Haziran',
+    'Temmuz',
+    'Ağustos',
+    'Eylül',
+    'Ekim',
+    'Kasım',
+    'Aralık',
+  ];
+
   @override
   void initState() {
     super.initState();
@@ -71,12 +86,24 @@ class _AnaEkranState extends State<AnaEkran> {
           final templateKey = '${clientId}_${baseDesc}_$freq';
 
           if (!recurringTemplates.containsKey(templateKey)) {
+            int dueDay = now.day;
+            int dueMonth = now.month;
+            if (t['due_date'] != null) {
+              try {
+                final oldDue = DateTime.parse(t['due_date'].toString());
+                dueDay = oldDue.day;
+                dueMonth = oldDue.month;
+              } catch (_) {}
+            }
+
             recurringTemplates[templateKey] = {
               'client_id': clientId,
               'base_desc': baseDesc,
               'amount': double.tryParse(t['amount'].toString()) ?? 0.0,
               'payment_type_id': t['payment_type_id'],
               'frequency': freq,
+              'due_day': dueDay,
+              'due_month': dueMonth,
             };
           }
         }
@@ -114,6 +141,15 @@ class _AnaEkranState extends State<AnaEkran> {
           final periodLabel = freq == 'monthly'
               ? monthName
               : '${now.year} Yılı';
+
+          final int targetMonth = freq == 'monthly'
+              ? now.month
+              : (tmpl['due_month'] as int);
+          final int maxDays = DateTime(now.year, targetMonth + 1, 0).day;
+          final int rawDay = tmpl['due_day'] as int;
+          final int safeDay = rawDay > maxDays ? maxDays : rawDay;
+          final targetDueDate = DateTime(now.year, targetMonth, safeDay);
+
           newInserts.add({
             'company_id': _companyId,
             'client_id': clientId,
@@ -121,7 +157,7 @@ class _AnaEkranState extends State<AnaEkran> {
             'description': '$baseDesc • $periodLabel',
             'amount': tmpl['amount'],
             'is_paid': false,
-            'due_date': now.toIso8601String().split('T')[0],
+            'due_date': DateFormat('yyyy-MM-dd').format(targetDueDate),
             'frequency': freq,
             'period_key': targetPeriodKey,
           });
@@ -242,7 +278,8 @@ class _AnaEkranState extends State<AnaEkran> {
       double gelir = 0.0;
       List<Map<String, dynamic>> newAlerts = [];
       final today = DateTime.now();
-      final limitDate = today.add(const Duration(days: 3));
+      final todayOnly = DateTime(today.year, today.month, today.day);
+      final limitDateOnly = todayOnly.add(const Duration(days: 3));
 
       for (var t in transactionsData) {
         final amount = double.tryParse(t['amount'].toString()) ?? 0.0;
@@ -262,16 +299,20 @@ class _AnaEkranState extends State<AnaEkran> {
           toplamBorc += amount;
           if (t['due_date'] != null) {
             try {
-              final dueDate = DateTime.parse(t['due_date'].toString());
-              if (dueDate.isBefore(limitDate)) {
+              final parsed = DateTime.parse(t['due_date'].toString());
+              final dueDateOnly = DateTime(
+                parsed.year,
+                parsed.month,
+                parsed.day,
+              );
+              // Sadece vadesi geçmiş veya vadesine 3 gün (veya daha az) kalmış olanlar uyarıya düşer
+              if (!dueDateOnly.isAfter(limitDateOnly)) {
                 newAlerts.add({
                   'amount': amount,
                   'description': t['description'] ?? 'Belirtilmemiş İşlem',
-                  'due_date': dueDate,
+                  'due_date': dueDateOnly,
                   'client': cTitle,
-                  'is_overdue': dueDate.isBefore(
-                    DateTime(today.year, today.month, today.day),
-                  ),
+                  'is_overdue': dueDateOnly.isBefore(todayOnly),
                 });
               }
             } catch (_) {}
@@ -529,11 +570,17 @@ class _AnaEkranState extends State<AnaEkran> {
       return;
     }
 
+    final now = DateTime.now();
     final amountController = TextEditingController();
     final customNoteController = TextEditingController();
     String? selectedPaymentTypeId = paymentTypes.first['id'].toString();
     String selectedPaymentTypeName = paymentTypes.first['name'].toString();
     String selectedFrequency = 'monthly';
+
+    int selectedDay = now.day;
+    int selectedMonth = now.month;
+    int selectedYear = now.year;
+
     bool isProcessing = false;
 
     if (!mounted) return;
@@ -546,6 +593,14 @@ class _AnaEkranState extends State<AnaEkran> {
           builder: (context, setDialogState) {
             final screenWidth = MediaQuery.of(context).size.width;
             final isMobile = screenWidth < 600;
+            final maxDaysInSelectedMonth = DateTime(
+              selectedYear,
+              selectedMonth + 1,
+              0,
+            ).day;
+            if (selectedDay > maxDaysInSelectedMonth) {
+              selectedDay = maxDaysInSelectedMonth;
+            }
 
             return AlertDialog(
               backgroundColor: const Color(0xFF1A1A20),
@@ -670,6 +725,262 @@ class _AnaEkranState extends State<AnaEkran> {
                               },
                             ),
                             const SizedBox(height: 14),
+
+                            // PERİYODA GÖRE VADE GÜNÜ / TARİHİ SEÇİMİ
+                            Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF101014),
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                  color: const Color(
+                                    0xFF00ACC1,
+                                  ).withValues(alpha: 0.3),
+                                ),
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    children: [
+                                      const Icon(
+                                        Icons.event_available,
+                                        color: Color(0xFF00ACC1),
+                                        size: 18,
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Text(
+                                        selectedFrequency == 'monthly'
+                                            ? 'Son Ödeme Günü (Her Ayın Kaçı?)'
+                                            : selectedFrequency == 'yearly'
+                                            ? 'Yıllık Vade Tarihi (Gün ve Ay)'
+                                            : 'Son Ödeme / Vade Tarihi Seçin',
+                                        style: const TextStyle(
+                                          color: Color(0xFF00ACC1),
+                                          fontSize: 13,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 10),
+                                  if (selectedFrequency == 'monthly')
+                                    DropdownButtonFormField<int>(
+                                      value: selectedDay,
+                                      dropdownColor: const Color(0xFF222222),
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                      ),
+                                      decoration: InputDecoration(
+                                        filled: true,
+                                        fillColor: const Color(0xFF1A1A20),
+                                        contentPadding:
+                                            const EdgeInsets.symmetric(
+                                              horizontal: 12,
+                                              vertical: 10,
+                                            ),
+                                        border: OutlineInputBorder(
+                                          borderRadius: BorderRadius.circular(
+                                            10,
+                                          ),
+                                          borderSide: BorderSide.none,
+                                        ),
+                                      ),
+                                      items: List.generate(31, (i) => i + 1)
+                                          .map(
+                                            (d) => DropdownMenuItem(
+                                              value: d,
+                                              child: Text(
+                                                'Her Ayın $d. Günü Son Ödeme',
+                                              ),
+                                            ),
+                                          )
+                                          .toList(),
+                                      onChanged: (val) {
+                                        if (val != null) {
+                                          setDialogState(
+                                            () => selectedDay = val,
+                                          );
+                                        }
+                                      },
+                                    )
+                                  else
+                                    Row(
+                                      children: [
+                                        Expanded(
+                                          flex: 2,
+                                          child: DropdownButtonFormField<int>(
+                                            value: selectedDay,
+                                            dropdownColor: const Color(
+                                              0xFF222222,
+                                            ),
+                                            style: const TextStyle(
+                                              color: Colors.white,
+                                              fontSize: 13,
+                                            ),
+                                            decoration: InputDecoration(
+                                              labelText: 'Gün',
+                                              labelStyle: const TextStyle(
+                                                color: Colors.white54,
+                                              ),
+                                              filled: true,
+                                              fillColor: const Color(
+                                                0xFF1A1A20,
+                                              ),
+                                              contentPadding:
+                                                  const EdgeInsets.symmetric(
+                                                    horizontal: 10,
+                                                    vertical: 8,
+                                                  ),
+                                              border: OutlineInputBorder(
+                                                borderRadius:
+                                                    BorderRadius.circular(10),
+                                                borderSide: BorderSide.none,
+                                              ),
+                                            ),
+                                            items:
+                                                List.generate(
+                                                      maxDaysInSelectedMonth,
+                                                      (i) => i + 1,
+                                                    )
+                                                    .map(
+                                                      (d) => DropdownMenuItem(
+                                                        value: d,
+                                                        child: Text(
+                                                          d.toString().padLeft(
+                                                            2,
+                                                            '0',
+                                                          ),
+                                                        ),
+                                                      ),
+                                                    )
+                                                    .toList(),
+                                            onChanged: (val) {
+                                              if (val != null) {
+                                                setDialogState(
+                                                  () => selectedDay = val,
+                                                );
+                                              }
+                                            },
+                                          ),
+                                        ),
+                                        const SizedBox(width: 8),
+                                        Expanded(
+                                          flex: 4,
+                                          child: DropdownButtonFormField<int>(
+                                            value: selectedMonth,
+                                            dropdownColor: const Color(
+                                              0xFF222222,
+                                            ),
+                                            style: const TextStyle(
+                                              color: Colors.white,
+                                              fontSize: 13,
+                                            ),
+                                            decoration: InputDecoration(
+                                              labelText: 'Ay',
+                                              labelStyle: const TextStyle(
+                                                color: Colors.white54,
+                                              ),
+                                              filled: true,
+                                              fillColor: const Color(
+                                                0xFF1A1A20,
+                                              ),
+                                              contentPadding:
+                                                  const EdgeInsets.symmetric(
+                                                    horizontal: 10,
+                                                    vertical: 8,
+                                                  ),
+                                              border: OutlineInputBorder(
+                                                borderRadius:
+                                                    BorderRadius.circular(10),
+                                                borderSide: BorderSide.none,
+                                              ),
+                                            ),
+                                            items:
+                                                List.generate(12, (i) => i + 1)
+                                                    .map(
+                                                      (m) => DropdownMenuItem(
+                                                        value: m,
+                                                        child: Text(
+                                                          _turkishMonths[m - 1],
+                                                        ),
+                                                      ),
+                                                    )
+                                                    .toList(),
+                                            onChanged: (val) {
+                                              if (val != null) {
+                                                setDialogState(
+                                                  () => selectedMonth = val,
+                                                );
+                                              }
+                                            },
+                                          ),
+                                        ),
+                                        if (selectedFrequency ==
+                                            'one_time') ...[
+                                          const SizedBox(width: 8),
+                                          Expanded(
+                                            flex: 3,
+                                            child: DropdownButtonFormField<int>(
+                                              value: selectedYear,
+                                              dropdownColor: const Color(
+                                                0xFF222222,
+                                              ),
+                                              style: const TextStyle(
+                                                color: Colors.white,
+                                                fontSize: 13,
+                                              ),
+                                              decoration: InputDecoration(
+                                                labelText: 'Yıl',
+                                                labelStyle: const TextStyle(
+                                                  color: Colors.white54,
+                                                ),
+                                                filled: true,
+                                                fillColor: const Color(
+                                                  0xFF1A1A20,
+                                                ),
+                                                contentPadding:
+                                                    const EdgeInsets.symmetric(
+                                                      horizontal: 10,
+                                                      vertical: 8,
+                                                    ),
+                                                border: OutlineInputBorder(
+                                                  borderRadius:
+                                                      BorderRadius.circular(10),
+                                                  borderSide: BorderSide.none,
+                                                ),
+                                              ),
+                                              items:
+                                                  List.generate(
+                                                        6,
+                                                        (i) => now.year + i,
+                                                      )
+                                                      .map(
+                                                        (y) => DropdownMenuItem(
+                                                          value: y,
+                                                          child: Text(
+                                                            y.toString(),
+                                                          ),
+                                                        ),
+                                                      )
+                                                      .toList(),
+                                              onChanged: (val) {
+                                                if (val != null) {
+                                                  setDialogState(
+                                                    () => selectedYear = val,
+                                                  );
+                                                }
+                                              },
+                                            ),
+                                          ),
+                                        ],
+                                      ],
+                                    ),
+                                ],
+                              ),
+                            ),
+
+                            const SizedBox(height: 14),
                             TextField(
                               controller: amountController,
                               keyboardType:
@@ -746,17 +1057,54 @@ class _AnaEkranState extends State<AnaEkran> {
                                 ) ??
                                 0.0;
 
-                            final now = DateTime.now();
+                            DateTime finalDueDate;
+                            if (selectedFrequency == 'monthly') {
+                              final maxD = DateTime(
+                                now.year,
+                                now.month + 1,
+                                0,
+                              ).day;
+                              final d = selectedDay > maxD ? maxD : selectedDay;
+                              finalDueDate = DateTime(now.year, now.month, d);
+                            } else if (selectedFrequency == 'yearly') {
+                              final maxD = DateTime(
+                                now.year,
+                                selectedMonth + 1,
+                                0,
+                              ).day;
+                              final d = selectedDay > maxD ? maxD : selectedDay;
+                              finalDueDate = DateTime(
+                                now.year,
+                                selectedMonth,
+                                d,
+                              );
+                            } else {
+                              final maxD = DateTime(
+                                selectedYear,
+                                selectedMonth + 1,
+                                0,
+                              ).day;
+                              final d = selectedDay > maxD ? maxD : selectedDay;
+                              finalDueDate = DateTime(
+                                selectedYear,
+                                selectedMonth,
+                                d,
+                              );
+                            }
+
                             final periodLabel = selectedFrequency == 'monthly'
-                                ? DateFormat('MMMM yyyy', 'tr_TR').format(now)
+                                ? DateFormat(
+                                    'MMMM yyyy',
+                                    'tr_TR',
+                                  ).format(finalDueDate)
                                 : selectedFrequency == 'yearly'
-                                ? '${now.year} Yılı'
-                                : DateFormat('dd.MM.yyyy').format(now);
+                                ? '${finalDueDate.year} Yılı'
+                                : DateFormat('dd.MM.yyyy').format(finalDueDate);
 
                             final periodKey = selectedFrequency == 'monthly'
-                                ? DateFormat('yyyy-MM').format(now)
+                                ? DateFormat('yyyy-MM').format(finalDueDate)
                                 : selectedFrequency == 'yearly'
-                                ? DateFormat('yyyy').format(now)
+                                ? DateFormat('yyyy').format(finalDueDate)
                                 : 'ONCE_${now.millisecondsSinceEpoch}';
 
                             final baseTitle =
@@ -768,9 +1116,9 @@ class _AnaEkranState extends State<AnaEkran> {
                                 ? baseTitle
                                 : '$baseTitle • $periodLabel';
 
-                            final todayStr = now.toIso8601String().split(
-                              'T',
-                            )[0];
+                            final dueDateStr = DateFormat(
+                              'yyyy-MM-dd',
+                            ).format(finalDueDate);
 
                             final List<Map<String, dynamic>> batchInserts =
                                 List<Map<String, dynamic>>.from(clientsRes)
@@ -783,7 +1131,7 @@ class _AnaEkranState extends State<AnaEkran> {
                                         'description': finalDesc,
                                         'amount': amount,
                                         'is_paid': false,
-                                        'due_date': todayStr,
+                                        'due_date': dueDateStr,
                                         'frequency': selectedFrequency,
                                         'period_key': periodKey,
                                       },
@@ -802,7 +1150,7 @@ class _AnaEkranState extends State<AnaEkran> {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
                                   content: Text(
-                                    '${clientsRes.length} mükellefe tahakkuk başarıyla tanımlandı!',
+                                    '${clientsRes.length} mükellefe tahakkuk (Vade: ${DateFormat('dd.MM.yyyy').format(finalDueDate)}) başarıyla tanımlandı!',
                                   ),
                                   backgroundColor: Colors.green,
                                 ),

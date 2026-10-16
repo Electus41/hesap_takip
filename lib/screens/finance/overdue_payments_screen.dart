@@ -13,8 +13,12 @@ class OverduePaymentsScreen extends StatefulWidget {
 class _OverduePaymentsScreenState extends State<OverduePaymentsScreen> {
   final supabase = Supabase.instance.client;
   bool _isLoading = true;
-  List<Map<String, dynamic>> _overdueList = [];
-  double _totalOverdue = 0.0;
+  String _companyId = '';
+  String _filterType = 'all'; // 'all' | 'overdue' | 'upcoming'
+
+  List<Map<String, dynamic>> _unpaidList = [];
+  double _totalOverdueAmount = 0.0;
+  double _totalUpcomingAmount = 0.0;
 
   @override
   void initState() {
@@ -32,13 +36,12 @@ class _OverduePaymentsScreenState extends State<OverduePaymentsScreen> {
           .select('company_id')
           .eq('id', user.id)
           .single();
-      final String companyId = profile['company_id'];
+      _companyId = profile['company_id'].toString();
 
-      // Şirkete bağlı tüm mükellefleri çekiyoruz
       final clientsRes = await supabase
           .from('clients')
           .select('id, title, phone')
-          .eq('company_id', companyId);
+          .eq('company_id', _companyId);
 
       final Map<String, Map<String, dynamic>> clientMap = {};
       for (var c in clientsRes) {
@@ -48,42 +51,67 @@ class _OverduePaymentsScreenState extends State<OverduePaymentsScreen> {
       if (clientMap.isEmpty) {
         if (mounted) {
           setState(() {
-            _overdueList = [];
-            _totalOverdue = 0.0;
+            _unpaidList = [];
+            _totalOverdueAmount = 0.0;
+            _totalUpcomingAmount = 0.0;
             _isLoading = false;
           });
         }
         return;
       }
 
-      // Mükelleflere ait tüm işlemleri çekip ödenmemişleri filtreliyoruz
       final txRes = await supabase
           .from('transactions')
           .select()
           .inFilter('client_id', clientMap.keys.toList())
           .order('due_date', ascending: true);
 
-      double total = 0.0;
-      List<Map<String, dynamic>> unpaidList = [];
+      final now = DateTime.now();
+      final todayOnly = DateTime(now.year, now.month, now.day);
+
+      double overdueSum = 0.0;
+      double upcomingSum = 0.0;
+      List<Map<String, dynamic>> list = [];
 
       for (var t in txRes) {
         final isPaid = t['is_paid'] == true;
         if (!isPaid) {
           final amount = double.tryParse(t['amount'].toString()) ?? 0.0;
-          total += amount;
           final cInfo = clientMap[t['client_id'].toString()];
-          unpaidList.add({
+
+          DateTime dueOnly = todayOnly;
+          if (t['due_date'] != null) {
+            try {
+              final p = DateTime.parse(t['due_date'].toString());
+              dueOnly = DateTime(p.year, p.month, p.day);
+            } catch (_) {}
+          }
+
+          final diffDays = dueOnly.difference(todayOnly).inDays;
+          final bool isOverdue = diffDays < 0;
+
+          if (isOverdue) {
+            overdueSum += amount;
+          } else {
+            upcomingSum += amount;
+          }
+
+          list.add({
             ...t,
             'client_title': cInfo?['title'] ?? 'Bilinmeyen Mükellef',
             'client_phone': cInfo?['phone'] ?? '',
+            'parsed_due': dueOnly,
+            'diff_days': diffDays,
+            'is_overdue': isOverdue,
           });
         }
       }
 
       if (mounted) {
         setState(() {
-          _overdueList = unpaidList;
-          _totalOverdue = total;
+          _unpaidList = list;
+          _totalOverdueAmount = overdueSum;
+          _totalUpcomingAmount = upcomingSum;
           _isLoading = false;
         });
       }
@@ -94,7 +122,7 @@ class _OverduePaymentsScreenState extends State<OverduePaymentsScreen> {
     }
   }
 
-  // TAHSİLAT YAPMA DİYALOĞU (Kısmi veya Tam Ödeme)
+  // KISMİ VEYA TAM TAHSİLAT PENCERESİ (KISMİ ÖDEMEYİ KASAYA DA GELİR OLARAK EKLER!)
   void _showPaymentDialog(Map<String, dynamic> item) {
     final double maxAmount = double.tryParse(item['amount'].toString()) ?? 0.0;
     final amountController = TextEditingController(
@@ -114,17 +142,61 @@ class _OverduePaymentsScreenState extends State<OverduePaymentsScreen> {
               ),
               title: Text(
                 'Tahsilat Al: ${item['client_title']}',
-                style: const TextStyle(color: Colors.white, fontSize: 16),
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               content: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Kalan Borç: ₺${maxAmount.toStringAsFixed(2)}',
-                    style: const TextStyle(color: Colors.white70, fontSize: 13),
+                    'Kalem: ${item['description'] ?? ''}',
+                    style: const TextStyle(color: Colors.white54, fontSize: 12),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    'Kalan Alacak: ₺${maxAmount.toStringAsFixed(2)}',
+                    style: const TextStyle(
+                      color: Colors.orangeAccent,
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                   const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      ActionChip(
+                        label: const Text('Tamamını Seç'),
+                        backgroundColor: const Color(
+                          0xFF00ACC1,
+                        ).withValues(alpha: 0.2),
+                        labelStyle: const TextStyle(
+                          color: Color(0xFF00ACC1),
+                          fontSize: 12,
+                        ),
+                        onPressed: () {
+                          amountController.text = maxAmount.toStringAsFixed(0);
+                        },
+                      ),
+                      const SizedBox(width: 8),
+                      ActionChip(
+                        label: const Text('Yarısını Seç (%50)'),
+                        backgroundColor: Colors.white10,
+                        labelStyle: const TextStyle(
+                          color: Colors.white70,
+                          fontSize: 12,
+                        ),
+                        onPressed: () {
+                          amountController.text = (maxAmount / 2)
+                              .toStringAsFixed(0);
+                        },
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
                   TextField(
                     controller: amountController,
                     keyboardType: const TextInputType.numberWithOptions(
@@ -172,25 +244,45 @@ class _OverduePaymentsScreenState extends State<OverduePaymentsScreen> {
                             final transactionId = item['id'].toString();
 
                             if (enteredAmount >= maxAmount) {
-                              // Hepsini veya fazlasını ödiyorsa direkt kapat
+                              // Tam ödeme: doğrudan borcu ödendi yap
                               await supabase
                                   .from('transactions')
                                   .update({'is_paid': true})
                                   .eq('id', transactionId);
                             } else {
-                              // Kısmi ödeme yapılıyorsa: Mevcut borçtan ödenen tutarı düş ve güncelle
+                              // Kısmi ödeme:
+                              // 1. Kalan borcu güncelle
                               final remainingAmount = maxAmount - enteredAmount;
                               await supabase
                                   .from('transactions')
                                   .update({'amount': remainingAmount})
                                   .eq('id', transactionId);
+
+                              // 2. Tahsil edilen kısmı kasaya (is_paid: true) gelir olarak ekle!
+                              await supabase.from('transactions').insert({
+                                'company_id': item['company_id'] ?? _companyId,
+                                'client_id': item['client_id'],
+                                'payment_type_id': item['payment_type_id'],
+                                'description':
+                                    '${item['description'] ?? 'Hizmet'} (Kısmi Tahsilat)',
+                                'amount': enteredAmount,
+                                'is_paid': true,
+                                'due_date': DateFormat(
+                                  'yyyy-MM-dd',
+                                ).format(DateTime.now()),
+                                'frequency': 'one_time',
+                                'period_key':
+                                    'PARTIAL_${DateTime.now().millisecondsSinceEpoch}',
+                              });
                             }
 
                             if (mounted) {
                               Navigator.pop(context);
                               ScaffoldMessenger.of(context).showSnackBar(
                                 const SnackBar(
-                                  content: Text('Tahsilat başarıyla işlendi!'),
+                                  content: Text(
+                                    'Tahsilat başarıyla kasaya işlendi!',
+                                  ),
                                   backgroundColor: Colors.green,
                                 ),
                               );
@@ -240,13 +332,14 @@ class _OverduePaymentsScreenState extends State<OverduePaymentsScreen> {
     String phone,
     String desc,
     double amount,
+    String dueDateStr,
   ) async {
     final currencyFormatter = NumberFormat.currency(
       locale: 'tr_TR',
       symbol: '₺',
     );
     final message =
-        'Sayın $clientTitle, "$desc" kalemine ait ${currencyFormatter.format(amount)} tutarındaki ödemenizi hatırlatmak isteriz. İyi çalışmalar dileriz.';
+        'Sayın $clientTitle, "$desc" kalemine ait (Son Ödeme: $dueDateStr) ${currencyFormatter.format(amount)} tutarındaki ödemenizi hatırlatmak isteriz. İyi çalışmalar dileriz.';
 
     String cleanPhone = phone.replaceAll(RegExp(r'[^0-9]'), '');
     if (cleanPhone.startsWith('0')) {
@@ -280,13 +373,19 @@ class _OverduePaymentsScreenState extends State<OverduePaymentsScreen> {
     );
     final isMobile = MediaQuery.of(context).size.width < 600;
 
+    final filteredList = _unpaidList.where((item) {
+      if (_filterType == 'overdue') return item['is_overdue'] == true;
+      if (_filterType == 'upcoming') return item['is_overdue'] == false;
+      return true;
+    }).toList();
+
     return Scaffold(
       backgroundColor: const Color(0xFF101014),
       appBar: AppBar(
         backgroundColor: const Color(0xFF16161A),
         elevation: 0,
         title: const Text(
-          'Bekleyen / Gecikmiş Ödemeler',
+          'Bekleyen & Gecikmiş Alacaklar',
           style: TextStyle(
             color: Colors.white,
             fontWeight: FontWeight.bold,
@@ -301,11 +400,11 @@ class _OverduePaymentsScreenState extends State<OverduePaymentsScreen> {
             )
           : Column(
               children: [
-                // ÜST ÖZET ALANI
+                // ÜST ÖZET VE FİLTRE ALANI
                 Container(
                   width: double.infinity,
                   padding: EdgeInsets.symmetric(
-                    vertical: isMobile ? 20 : 28,
+                    vertical: isMobile ? 16 : 22,
                     horizontal: 16,
                   ),
                   decoration: const BoxDecoration(
@@ -314,26 +413,104 @@ class _OverduePaymentsScreenState extends State<OverduePaymentsScreen> {
                   ),
                   child: Column(
                     children: [
-                      const Text(
-                        'Toplam Bekleyen Alacak Tutarı',
-                        style: TextStyle(color: Colors.white54, fontSize: 13),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                        children: [
+                          Column(
+                            children: [
+                              const Text(
+                                'Vadesi Geçmiş (Geciken)',
+                                style: TextStyle(
+                                  color: Colors.white54,
+                                  fontSize: 12,
+                                ),
+                              ),
+                              const SizedBox(height: 6),
+                              Text(
+                                currencyFormatter.format(_totalOverdueAmount),
+                                style: const TextStyle(
+                                  color: Colors.redAccent,
+                                  fontSize: 24,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
+                          ),
+                          Container(
+                            width: 1,
+                            height: 40,
+                            color: Colors.white12,
+                          ),
+                          Column(
+                            children: [
+                              const Text(
+                                'Vadesi Beklenen (Gelecek)',
+                                style: TextStyle(
+                                  color: Colors.white54,
+                                  fontSize: 12,
+                                ),
+                              ),
+                              const SizedBox(height: 6),
+                              Text(
+                                currencyFormatter.format(_totalUpcomingAmount),
+                                style: const TextStyle(
+                                  color: Color(0xFF00ACC1),
+                                  fontSize: 24,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
                       ),
-                      const SizedBox(height: 8),
-                      Text(
-                        currencyFormatter.format(_totalOverdue),
-                        style: const TextStyle(
-                          color: Colors.redAccent,
-                          fontSize: 34,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 6),
-                      Text(
-                        'Bekleyen İşlem Sayısı: ${_overdueList.length}',
-                        style: const TextStyle(
-                          color: Colors.white54,
-                          fontSize: 13,
-                        ),
+                      const SizedBox(height: 16),
+                      Wrap(
+                        spacing: 10,
+                        children: [
+                          ChoiceChip(
+                            label: Text('Tümü (${_unpaidList.length})'),
+                            selected: _filterType == 'all',
+                            selectedColor: const Color(0xFF00ACC1),
+                            labelStyle: TextStyle(
+                              color: _filterType == 'all'
+                                  ? Colors.white
+                                  : Colors.white70,
+                              fontWeight: FontWeight.bold,
+                            ),
+                            onSelected: (_) =>
+                                setState(() => _filterType = 'all'),
+                          ),
+                          ChoiceChip(
+                            label: Text(
+                              '🚨 Vadesi Geçenler (${_unpaidList.where((e) => e['is_overdue'] == true).length})',
+                            ),
+                            selected: _filterType == 'overdue',
+                            selectedColor: Colors.redAccent,
+                            labelStyle: TextStyle(
+                              color: _filterType == 'overdue'
+                                  ? Colors.white
+                                  : Colors.white70,
+                              fontWeight: FontWeight.bold,
+                            ),
+                            onSelected: (_) =>
+                                setState(() => _filterType = 'overdue'),
+                          ),
+                          ChoiceChip(
+                            label: Text(
+                              '⏳ Vadesi Beklenenler (${_unpaidList.where((e) => e['is_overdue'] == false).length})',
+                            ),
+                            selected: _filterType == 'upcoming',
+                            selectedColor: Colors.orangeAccent,
+                            labelStyle: TextStyle(
+                              color: _filterType == 'upcoming'
+                                  ? Colors.black
+                                  : Colors.white70,
+                              fontWeight: FontWeight.bold,
+                            ),
+                            onSelected: (_) =>
+                                setState(() => _filterType = 'upcoming'),
+                          ),
+                        ],
                       ),
                     ],
                   ),
@@ -341,7 +518,7 @@ class _OverduePaymentsScreenState extends State<OverduePaymentsScreen> {
 
                 // LİSTE ALANI
                 Expanded(
-                  child: _overdueList.isEmpty
+                  child: filteredList.isEmpty
                       ? const Center(
                           child: Column(
                             mainAxisAlignment: MainAxisAlignment.center,
@@ -353,7 +530,7 @@ class _OverduePaymentsScreenState extends State<OverduePaymentsScreen> {
                               ),
                               SizedBox(height: 16),
                               Text(
-                                'Bekleyen veya geciken alacağınız bulunmuyor!',
+                                'Bu filtrede bekleyen alacak bulunmuyor!',
                                 style: TextStyle(
                                   color: Colors.white54,
                                   fontSize: 15,
@@ -364,9 +541,9 @@ class _OverduePaymentsScreenState extends State<OverduePaymentsScreen> {
                         )
                       : ListView.builder(
                           padding: EdgeInsets.all(isMobile ? 16 : 24),
-                          itemCount: _overdueList.length,
+                          itemCount: filteredList.length,
                           itemBuilder: (context, index) {
-                            final item = _overdueList[index];
+                            final item = filteredList[index];
                             final clientTitle =
                                 item['client_title'] ?? 'Mükellef';
                             final clientPhone = item['client_phone'] ?? '';
@@ -376,14 +553,35 @@ class _OverduePaymentsScreenState extends State<OverduePaymentsScreen> {
                             final desc =
                                 item['description'] ?? 'Belirtilmemiş İşlem';
                             final freq = item['frequency']?.toString();
+                            final int diffDays = item['diff_days'] as int;
+                            final bool isOverdue = item['is_overdue'] as bool;
 
-                            String dateStr = 'Belirtilmemiş';
-                            if (item['due_date'] != null) {
-                              try {
-                                dateStr = DateFormat('dd.MM.yyyy').format(
-                                  DateTime.parse(item['due_date'].toString()),
-                                );
-                              } catch (_) {}
+                            final String dateStr = DateFormat(
+                              'dd.MM.yyyy',
+                            ).format(item['parsed_due'] as DateTime);
+
+                            // VADE DURUMUNA GÖRE RENK VE ETİKET
+                            Color statusColor;
+                            String statusText;
+                            IconData statusIcon;
+
+                            if (isOverdue) {
+                              statusColor = Colors.redAccent;
+                              statusText = '${diffDays.abs()} Gün Gecikti!';
+                              statusIcon = Icons.warning_amber_rounded;
+                            } else if (diffDays == 0) {
+                              statusColor = Colors.orangeAccent;
+                              statusText = 'Son Gün Bugün!';
+                              statusIcon = Icons.notification_important;
+                            } else if (diffDays <= 3) {
+                              statusColor = Colors.orangeAccent;
+                              statusText = 'Vadeye $diffDays Gün Kaldı';
+                              statusIcon = Icons.schedule;
+                            } else {
+                              statusColor = const Color(0xFF00ACC1);
+                              statusText =
+                                  'Vadesi Bekleniyor ($diffDays gün var)';
+                              statusIcon = Icons.event_available;
                             }
 
                             return Container(
@@ -393,7 +591,7 @@ class _OverduePaymentsScreenState extends State<OverduePaymentsScreen> {
                                 color: const Color(0xFF1A1A20),
                                 borderRadius: BorderRadius.circular(16),
                                 border: Border.all(
-                                  color: Colors.white.withValues(alpha: 0.06),
+                                  color: statusColor.withValues(alpha: 0.25),
                                 ),
                               ),
                               child: Column(
@@ -406,16 +604,16 @@ class _OverduePaymentsScreenState extends State<OverduePaymentsScreen> {
                                       Container(
                                         padding: const EdgeInsets.all(10),
                                         decoration: BoxDecoration(
-                                          color: Colors.orangeAccent.withValues(
+                                          color: statusColor.withValues(
                                             alpha: 0.12,
                                           ),
                                           borderRadius: BorderRadius.circular(
                                             12,
                                           ),
                                         ),
-                                        child: const Icon(
-                                          Icons.schedule,
-                                          color: Colors.orangeAccent,
+                                        child: Icon(
+                                          statusIcon,
+                                          color: statusColor,
                                           size: 22,
                                         ),
                                       ),
@@ -451,8 +649,8 @@ class _OverduePaymentsScreenState extends State<OverduePaymentsScreen> {
                                         children: [
                                           Text(
                                             currencyFormatter.format(amount),
-                                            style: const TextStyle(
-                                              color: Colors.redAccent,
+                                            style: TextStyle(
+                                              color: statusColor,
                                               fontSize: 17,
                                               fontWeight: FontWeight.bold,
                                             ),
@@ -464,16 +662,14 @@ class _OverduePaymentsScreenState extends State<OverduePaymentsScreen> {
                                               vertical: 2,
                                             ),
                                             decoration: BoxDecoration(
-                                              color: const Color(
-                                                0xFF00ACC1,
-                                              ).withValues(alpha: 0.15),
+                                              color: Colors.white10,
                                               borderRadius:
                                                   BorderRadius.circular(6),
                                             ),
                                             child: Text(
                                               _getFrequencyBadgeText(freq),
                                               style: const TextStyle(
-                                                color: Color(0xFF00ACC1),
+                                                color: Colors.white70,
                                                 fontSize: 10,
                                                 fontWeight: FontWeight.bold,
                                               ),
@@ -493,12 +689,28 @@ class _OverduePaymentsScreenState extends State<OverduePaymentsScreen> {
                                     mainAxisAlignment:
                                         MainAxisAlignment.spaceBetween,
                                     children: [
-                                      Text(
-                                        'Vade: $dateStr',
-                                        style: const TextStyle(
-                                          color: Colors.white54,
-                                          fontSize: 12,
-                                        ),
+                                      Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            'Son Ödeme: $dateStr',
+                                            style: const TextStyle(
+                                              color: Colors.white70,
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 2),
+                                          Text(
+                                            statusText,
+                                            style: TextStyle(
+                                              color: statusColor,
+                                              fontSize: 11,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                        ],
                                       ),
                                       Row(
                                         children: [
@@ -509,6 +721,7 @@ class _OverduePaymentsScreenState extends State<OverduePaymentsScreen> {
                                                   clientPhone,
                                                   desc,
                                                   amount,
+                                                  dateStr,
                                                 ),
                                             icon: const Icon(
                                               Icons.chat_bubble_outline,

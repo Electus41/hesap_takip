@@ -17,6 +17,21 @@ class _ClientListScreenState extends State<ClientListScreen> {
   List<Map<String, dynamic>> _clients = [];
   List<Map<String, dynamic>> _paymentTypes = [];
 
+  static const List<String> _turkishMonths = [
+    'Ocak',
+    'Şubat',
+    'Mart',
+    'Nisan',
+    'Mayıs',
+    'Haziran',
+    'Temmuz',
+    'Ağustos',
+    'Eylül',
+    'Ekim',
+    'Kasım',
+    'Aralık',
+  ];
+
   @override
   void initState() {
     super.initState();
@@ -33,7 +48,7 @@ class _ClientListScreenState extends State<ClientListScreen> {
           .select('company_id')
           .eq('id', user.id)
           .single();
-      _companyId = profile['company_id'];
+      _companyId = profile['company_id'].toString();
 
       final clientsRes = await supabase
           .from('clients')
@@ -61,32 +76,35 @@ class _ClientListScreenState extends State<ClientListScreen> {
     }
   }
 
-  // TAM GENİŞLİKTE MOBİL UYUMLU YENİ MÜKELLEF EKLEME / DÜZENLEME PENCERESİ
   void _showClientDialog({Map<String, dynamic>? existingClient}) {
     final isEdit = existingClient != null;
     final titleCtrl = TextEditingController(
-      text: existingClient?['title'] ?? '',
+      text: existingClient?['title']?.toString() ?? '',
     );
     final contactCtrl = TextEditingController(
-      text: existingClient?['contact_person'] ?? '',
+      text:
+          (existingClient?['contact_person'] ??
+                  existingClient?['contact_name'] ??
+                  '')
+              .toString(),
     );
     final taxOfficeCtrl = TextEditingController(
-      text: existingClient?['tax_office'] ?? '',
+      text: existingClient?['tax_office']?.toString() ?? '',
     );
     final taxNoCtrl = TextEditingController(
-      text: existingClient?['tax_number'] ?? '',
+      text: existingClient?['tax_number']?.toString() ?? '',
     );
     final phoneCtrl = TextEditingController(
-      text: existingClient?['phone'] ?? '',
+      text: existingClient?['phone']?.toString() ?? '',
     );
     final emailCtrl = TextEditingController(
-      text: existingClient?['email'] ?? '',
+      text: existingClient?['email']?.toString() ?? '',
     );
     final addressCtrl = TextEditingController(
-      text: existingClient?['address'] ?? '',
+      text: existingClient?['address']?.toString() ?? '',
     );
     final notesCtrl = TextEditingController(
-      text: existingClient?['notes'] ?? '',
+      text: existingClient?['notes']?.toString() ?? '',
     );
     bool isSaving = false;
 
@@ -211,6 +229,7 @@ class _ClientListScreenState extends State<ClientListScreen> {
                         final Map<String, dynamic> data = {
                           'company_id': _companyId,
                           'title': titleCtrl.text.trim(),
+                          'contact_person': contactCtrl.text.trim(),
                           'tax_office': taxOfficeCtrl.text.trim(),
                           'tax_number': taxNoCtrl.text.trim(),
                           'phone': phoneCtrl.text.trim(),
@@ -245,12 +264,31 @@ class _ClientListScreenState extends State<ClientListScreen> {
                             );
                           }
                         } catch (e) {
+                          if (e.toString().contains('contact_person')) {
+                            data.remove('contact_person');
+                            try {
+                              if (isEdit) {
+                                await supabase
+                                    .from('clients')
+                                    .update(data)
+                                    .eq('id', existingClient['id']);
+                              } else {
+                                await supabase.from('clients').insert(data);
+                              }
+                              if (mounted) {
+                                Navigator.pop(context);
+                                _fetchClients();
+                              }
+                              return;
+                            } catch (_) {}
+                          }
+
                           setDialogState(() => isSaving = false);
                           if (mounted) {
                             ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
+                              SnackBar(
                                 content: Text(
-                                  'İşlem kaydedilirken bir hata oluştu.',
+                                  'İşlem kaydedilirken bir hata oluştu: $e',
                                 ),
                                 backgroundColor: Colors.redAccent,
                               ),
@@ -283,8 +321,49 @@ class _ClientListScreenState extends State<ClientListScreen> {
     );
   }
 
-  // TEK MÜKELLEFE ÖZEL PERİYODİK (AYLIK / YILLIK / 1 DEFALIK) TAHAKKUK EKLEME
+  Future<void> _confirmDeleteClient(Map<String, dynamic> client) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF1A1A20),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text(
+          'Mükellefi Sil',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        ),
+        content: Text(
+          '"${client['title']}" isimli mükellefi silmek istediğinize emin misiniz?',
+          style: const TextStyle(color: Colors.white70),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('İptal', style: TextStyle(color: Colors.white54)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent),
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text(
+              'Evet, Sil',
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      await supabase.from('clients').delete().eq('id', client['id']);
+      _fetchClients();
+    }
+  }
+
+  // TEK MÜKELLEFE ÖZEL VADE SEÇİMLİ TAHAKKUK EKLEME PENCERESİ
   void _showAddSingleChargeDialog(Map<String, dynamic> client) {
+    final now = DateTime.now();
     final amountCtrl = TextEditingController();
     final descCtrl = TextEditingController();
     String? selectedPtId = _paymentTypes.isNotEmpty
@@ -294,6 +373,11 @@ class _ClientListScreenState extends State<ClientListScreen> {
         ? _paymentTypes.first['name'].toString()
         : 'Danışmanlık Hizmeti';
     String selectedFrequency = 'monthly';
+
+    int selectedDay = now.day;
+    int selectedMonth = now.month;
+    int selectedYear = now.year;
+
     bool isSaving = false;
 
     showDialog(
@@ -302,6 +386,14 @@ class _ClientListScreenState extends State<ClientListScreen> {
         builder: (context, setDialogState) {
           final screenWidth = MediaQuery.of(context).size.width;
           final isMobile = screenWidth < 600;
+          final maxDaysInSelectedMonth = DateTime(
+            selectedYear,
+            selectedMonth + 1,
+            0,
+          ).day;
+          if (selectedDay > maxDaysInSelectedMonth) {
+            selectedDay = maxDaysInSelectedMonth;
+          }
 
           return AlertDialog(
             backgroundColor: const Color(0xFF1A1A20),
@@ -313,7 +405,7 @@ class _ClientListScreenState extends State<ClientListScreen> {
               borderRadius: BorderRadius.circular(16),
             ),
             title: Text(
-              '${client['title']} - Tahakkuk Tanımla',
+              '${client['title']} • Tahakkuk Tanımla',
               style: const TextStyle(
                 color: Colors.white,
                 fontWeight: FontWeight.bold,
@@ -322,7 +414,7 @@ class _ClientListScreenState extends State<ClientListScreen> {
             ),
             content: SingleChildScrollView(
               child: SizedBox(
-                width: isMobile ? screenWidth : 430,
+                width: isMobile ? screenWidth : 450,
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
@@ -401,6 +493,226 @@ class _ClientListScreenState extends State<ClientListScreen> {
                       },
                     ),
                     const SizedBox(height: 12),
+
+                    // DİNAMİK VADE GÜNÜ / TARİHİ SEÇİMİ
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF101014),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: const Color(0xFF00ACC1).withValues(alpha: 0.3),
+                        ),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              const Icon(
+                                Icons.event_available,
+                                color: Color(0xFF00ACC1),
+                                size: 18,
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                selectedFrequency == 'monthly'
+                                    ? 'Son Ödeme Günü (Her Ayın Kaçı?)'
+                                    : selectedFrequency == 'yearly'
+                                    ? 'Yıllık Vade Tarihi (Gün ve Ay)'
+                                    : 'Son Ödeme / Vade Tarihi Seçin',
+                                style: const TextStyle(
+                                  color: Color(0xFF00ACC1),
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 10),
+                          if (selectedFrequency == 'monthly')
+                            DropdownButtonFormField<int>(
+                              value: selectedDay,
+                              dropdownColor: const Color(0xFF222222),
+                              style: const TextStyle(color: Colors.white),
+                              decoration: InputDecoration(
+                                filled: true,
+                                fillColor: const Color(0xFF1A1A20),
+                                contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 10,
+                                ),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(10),
+                                  borderSide: BorderSide.none,
+                                ),
+                              ),
+                              items: List.generate(31, (i) => i + 1)
+                                  .map(
+                                    (d) => DropdownMenuItem(
+                                      value: d,
+                                      child: Text(
+                                        'Her Ayın $d. Günü Son Ödeme',
+                                      ),
+                                    ),
+                                  )
+                                  .toList(),
+                              onChanged: (val) {
+                                if (val != null) {
+                                  setDialogState(() => selectedDay = val);
+                                }
+                              },
+                            )
+                          else
+                            Row(
+                              children: [
+                                Expanded(
+                                  flex: 2,
+                                  child: DropdownButtonFormField<int>(
+                                    value: selectedDay,
+                                    dropdownColor: const Color(0xFF222222),
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 13,
+                                    ),
+                                    decoration: InputDecoration(
+                                      labelText: 'Gün',
+                                      labelStyle: const TextStyle(
+                                        color: Colors.white54,
+                                      ),
+                                      filled: true,
+                                      fillColor: const Color(0xFF1A1A20),
+                                      contentPadding:
+                                          const EdgeInsets.symmetric(
+                                            horizontal: 10,
+                                            vertical: 8,
+                                          ),
+                                      border: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(10),
+                                        borderSide: BorderSide.none,
+                                      ),
+                                    ),
+                                    items:
+                                        List.generate(
+                                              maxDaysInSelectedMonth,
+                                              (i) => i + 1,
+                                            )
+                                            .map(
+                                              (d) => DropdownMenuItem(
+                                                value: d,
+                                                child: Text(
+                                                  d.toString().padLeft(2, '0'),
+                                                ),
+                                              ),
+                                            )
+                                            .toList(),
+                                    onChanged: (val) {
+                                      if (val != null) {
+                                        setDialogState(() => selectedDay = val);
+                                      }
+                                    },
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  flex: 4,
+                                  child: DropdownButtonFormField<int>(
+                                    value: selectedMonth,
+                                    dropdownColor: const Color(0xFF222222),
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 13,
+                                    ),
+                                    decoration: InputDecoration(
+                                      labelText: 'Ay',
+                                      labelStyle: const TextStyle(
+                                        color: Colors.white54,
+                                      ),
+                                      filled: true,
+                                      fillColor: const Color(0xFF1A1A20),
+                                      contentPadding:
+                                          const EdgeInsets.symmetric(
+                                            horizontal: 10,
+                                            vertical: 8,
+                                          ),
+                                      border: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(10),
+                                        borderSide: BorderSide.none,
+                                      ),
+                                    ),
+                                    items: List.generate(12, (i) => i + 1)
+                                        .map(
+                                          (m) => DropdownMenuItem(
+                                            value: m,
+                                            child: Text(_turkishMonths[m - 1]),
+                                          ),
+                                        )
+                                        .toList(),
+                                    onChanged: (val) {
+                                      if (val != null) {
+                                        setDialogState(
+                                          () => selectedMonth = val,
+                                        );
+                                      }
+                                    },
+                                  ),
+                                ),
+                                if (selectedFrequency == 'one_time') ...[
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    flex: 3,
+                                    child: DropdownButtonFormField<int>(
+                                      value: selectedYear,
+                                      dropdownColor: const Color(0xFF222222),
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 13,
+                                      ),
+                                      decoration: InputDecoration(
+                                        labelText: 'Yıl',
+                                        labelStyle: const TextStyle(
+                                          color: Colors.white54,
+                                        ),
+                                        filled: true,
+                                        fillColor: const Color(0xFF1A1A20),
+                                        contentPadding:
+                                            const EdgeInsets.symmetric(
+                                              horizontal: 10,
+                                              vertical: 8,
+                                            ),
+                                        border: OutlineInputBorder(
+                                          borderRadius: BorderRadius.circular(
+                                            10,
+                                          ),
+                                          borderSide: BorderSide.none,
+                                        ),
+                                      ),
+                                      items:
+                                          List.generate(6, (i) => now.year + i)
+                                              .map(
+                                                (y) => DropdownMenuItem(
+                                                  value: y,
+                                                  child: Text(y.toString()),
+                                                ),
+                                              )
+                                              .toList(),
+                                      onChanged: (val) {
+                                        if (val != null) {
+                                          setDialogState(
+                                            () => selectedYear = val,
+                                          );
+                                        }
+                                      },
+                                    ),
+                                  ),
+                                ],
+                              ],
+                            ),
+                        ],
+                      ),
+                    ),
+
+                    const SizedBox(height: 12),
                     _buildDialogField(
                       'Tutar (₺) - Örn: 1000',
                       amountCtrl,
@@ -447,15 +759,45 @@ class _ClientListScreenState extends State<ClientListScreen> {
                         }
 
                         setDialogState(() => isSaving = true);
-                        final now = DateTime.now();
+
+                        DateTime finalDueDate;
+                        if (selectedFrequency == 'monthly') {
+                          final maxD = DateTime(now.year, now.month + 1, 0).day;
+                          final d = selectedDay > maxD ? maxD : selectedDay;
+                          finalDueDate = DateTime(now.year, now.month, d);
+                        } else if (selectedFrequency == 'yearly') {
+                          final maxD = DateTime(
+                            now.year,
+                            selectedMonth + 1,
+                            0,
+                          ).day;
+                          final d = selectedDay > maxD ? maxD : selectedDay;
+                          finalDueDate = DateTime(now.year, selectedMonth, d);
+                        } else {
+                          final maxD = DateTime(
+                            selectedYear,
+                            selectedMonth + 1,
+                            0,
+                          ).day;
+                          final d = selectedDay > maxD ? maxD : selectedDay;
+                          finalDueDate = DateTime(
+                            selectedYear,
+                            selectedMonth,
+                            d,
+                          );
+                        }
+
                         final baseDesc = descCtrl.text.trim().isNotEmpty
                             ? descCtrl.text.trim()
                             : selectedPtName;
 
                         final periodLabel = selectedFrequency == 'monthly'
-                            ? DateFormat('MMMM yyyy', 'tr_TR').format(now)
+                            ? DateFormat(
+                                'MMMM yyyy',
+                                'tr_TR',
+                              ).format(finalDueDate)
                             : selectedFrequency == 'yearly'
-                            ? '${now.year} Yılı'
+                            ? '${finalDueDate.year} Yılı'
                             : '';
 
                         final finalDesc = periodLabel.isEmpty
@@ -463,9 +805,9 @@ class _ClientListScreenState extends State<ClientListScreen> {
                             : '$baseDesc • $periodLabel';
 
                         final periodKey = selectedFrequency == 'monthly'
-                            ? DateFormat('yyyy-MM').format(now)
+                            ? DateFormat('yyyy-MM').format(finalDueDate)
                             : selectedFrequency == 'yearly'
-                            ? DateFormat('yyyy').format(now)
+                            ? DateFormat('yyyy').format(finalDueDate)
                             : 'ONCE_${now.millisecondsSinceEpoch}';
 
                         try {
@@ -476,7 +818,9 @@ class _ClientListScreenState extends State<ClientListScreen> {
                             'description': finalDesc,
                             'amount': amount,
                             'is_paid': false,
-                            'due_date': now.toIso8601String().split('T')[0],
+                            'due_date': DateFormat(
+                              'yyyy-MM-dd',
+                            ).format(finalDueDate),
                             'frequency': selectedFrequency,
                             'period_key': periodKey,
                           });
@@ -484,8 +828,10 @@ class _ClientListScreenState extends State<ClientListScreen> {
                           if (mounted) {
                             Navigator.pop(context);
                             ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Tahakkuk başarıyla eklendi!'),
+                              SnackBar(
+                                content: Text(
+                                  'Tahakkuk (Vade: ${DateFormat('dd.MM.yyyy').format(finalDueDate)}) başarıyla eklendi!',
+                                ),
                                 backgroundColor: Colors.green,
                               ),
                             );
@@ -548,8 +894,9 @@ class _ClientListScreenState extends State<ClientListScreen> {
     final filteredClients = _clients.where((c) {
       final title = (c['title'] ?? '').toString().toLowerCase();
       final taxNo = (c['tax_number'] ?? '').toString().toLowerCase();
-      return title.contains(_searchQuery.toLowerCase()) ||
-          taxNo.contains(_searchQuery.toLowerCase());
+      final contact = (c['contact_person'] ?? '').toString().toLowerCase();
+      final q = _searchQuery.toLowerCase();
+      return title.contains(q) || taxNo.contains(q) || contact.contains(q);
     }).toList();
 
     return Scaffold(
@@ -584,7 +931,8 @@ class _ClientListScreenState extends State<ClientListScreen> {
                     onChanged: (val) => setState(() => _searchQuery = val),
                     style: const TextStyle(color: Colors.white),
                     decoration: InputDecoration(
-                      hintText: 'Mükellef unvanı veya Vergi/TC No ile ara...',
+                      hintText:
+                          'Mükellef unvanı, Yetkili adı veya Vergi/TC No ile ara...',
                       hintStyle: const TextStyle(
                         color: Colors.white38,
                         fontSize: 14,
@@ -617,6 +965,10 @@ class _ClientListScreenState extends State<ClientListScreen> {
                             itemCount: filteredClients.length,
                             itemBuilder: (context, index) {
                               final c = filteredClients[index];
+                              final contactName = (c['contact_person'] ?? '')
+                                  .toString()
+                                  .trim();
+
                               return Container(
                                 margin: const EdgeInsets.only(bottom: 12),
                                 decoration: BoxDecoration(
@@ -654,7 +1006,7 @@ class _ClientListScreenState extends State<ClientListScreen> {
                                   subtitle: Padding(
                                     padding: const EdgeInsets.only(top: 4.0),
                                     child: Text(
-                                      'Vergi Dairesi: ${c['tax_office'] ?? '-'} • VKN/TC: ${c['tax_number'] ?? '-'}\nTel: ${c['phone'] ?? '-'}',
+                                      '${contactName.isNotEmpty ? 'Yetkili: $contactName • ' : ''}Vergi Dairesi: ${c['tax_office'] ?? '-'} • VKN/TC: ${c['tax_number'] ?? '-'}\nTel: ${c['phone'] ?? '-'}',
                                       style: const TextStyle(
                                         color: Colors.white54,
                                         fontSize: 12,
@@ -674,11 +1026,7 @@ class _ClientListScreenState extends State<ClientListScreen> {
                                       } else if (val == 'edit') {
                                         _showClientDialog(existingClient: c);
                                       } else if (val == 'delete') {
-                                        await supabase
-                                            .from('clients')
-                                            .delete()
-                                            .eq('id', c['id']);
-                                        _fetchClients();
+                                        _confirmDeleteClient(c);
                                       }
                                     },
                                     itemBuilder: (context) => [
