@@ -1,8 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'screens/dashboard/ana_ekran.dart';
 import 'screens/auth/login_screen.dart';
+
+const Color _kTeal = Color(0xFF00ACC1);
+const Color _kBg = Color(0xFF101014);
+const Color _kCard = Color(0xFF1A1A20);
+
+// Şifre sıfırlama e-postası istendiğinde login ekranı bu anahtara zaman damgası yazar
+const String _kPendingRecoveryKey = 'pending_recovery_at';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -10,16 +18,30 @@ Future<void> main() async {
   // Türkçe tarih formatı (tr_TR) verilerini yüklüyoruz
   await initializeDateFormatting('tr_TR', null);
 
+  // Şifre sıfırlama bağlantısından mı geliyoruz?
+  // Supabase.initialize, bağlantıdaki kodu işleyip olayı runApp'ten ÖNCE gönderdiği için
+  // olayı dinleyerek yakalayamayız. Bunun yerine: adreste "code" var VE yakın zamanda
+  // bu tarayıcıdan şifre sıfırlama istenmiş mi diye bakıyoruz.
+  final prefs = await SharedPreferences.getInstance();
+  final requestedAt = prefs.getInt(_kPendingRecoveryKey);
+  final hasAuthCode = Uri.base.queryParameters.containsKey('code');
+  final startInRecovery =
+      hasAuthCode &&
+      requestedAt != null &&
+      DateTime.now().millisecondsSinceEpoch - requestedAt <
+          2 * 60 * 60 * 1000; // 2 saat içinde istenmişse geçerli
+
   await Supabase.initialize(
     url: 'https://plgsxbpgbqjvrytgusjk.supabase.co',
     publishableKey: 'sb_publishable_r3cPr9t6Z_wpk90b__oGIQ_gonzAyU8',
   );
 
-  runApp(const MukellefTakipApp());
+  runApp(MukellefTakipApp(startInRecovery: startInRecovery));
 }
 
 class MukellefTakipApp extends StatelessWidget {
-  const MukellefTakipApp({super.key});
+  final bool startInRecovery;
+  const MukellefTakipApp({super.key, this.startInRecovery = false});
 
   @override
   Widget build(BuildContext context) {
@@ -28,29 +50,33 @@ class MukellefTakipApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF00ACC1),
+          seedColor: _kTeal,
           brightness: Brightness.dark,
         ),
         useMaterial3: true,
       ),
-      home: const AuthGate(),
+      home: AuthGate(startInRecovery: startInRecovery),
     );
   }
 }
 
 class AuthGate extends StatefulWidget {
-  const AuthGate({super.key});
+  final bool startInRecovery;
+  const AuthGate({super.key, this.startInRecovery = false});
 
   @override
   State<AuthGate> createState() => _AuthGateState();
 }
 
 class _AuthGateState extends State<AuthGate> {
-  bool _isPasswordRecovery = false;
+  late bool _isPasswordRecovery;
 
   @override
   void initState() {
     super.initState();
+    _isPasswordRecovery = widget.startInRecovery;
+
+    // Uygulama açıkken gelen şifre sıfırlama olayları için ikinci güvence
     Supabase.instance.client.auth.onAuthStateChange.listen((data) {
       if (data.event == AuthChangeEvent.passwordRecovery) {
         if (mounted) {
@@ -60,12 +86,23 @@ class _AuthGateState extends State<AuthGate> {
     });
   }
 
+  Future<void> _clearRecoveryFlag() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_kPendingRecoveryKey);
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_isPasswordRecovery) {
       return UpdatePasswordScreen(
-        onPasswordUpdated: () {
-          setState(() => _isPasswordRecovery = false);
+        onPasswordUpdated: () async {
+          await _clearRecoveryFlag();
+          if (mounted) setState(() => _isPasswordRecovery = false);
+        },
+        onCancel: () async {
+          await _clearRecoveryFlag();
+          await Supabase.instance.client.auth.signOut();
+          if (mounted) setState(() => _isPasswordRecovery = false);
         },
       );
     }
@@ -75,10 +112,8 @@ class _AuthGateState extends State<AuthGate> {
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Scaffold(
-            backgroundColor: Color(0xFF101014),
-            body: Center(
-              child: CircularProgressIndicator(color: Color(0xFF00ACC1)),
-            ),
+            backgroundColor: _kBg,
+            body: Center(child: CircularProgressIndicator(color: _kTeal)),
           );
         }
 
@@ -97,7 +132,12 @@ class _AuthGateState extends State<AuthGate> {
 // E-POSTADAKİ ŞİFRE SIFIRLAMA LİNKİNE TIKLANDIĞINDA AÇILAN EKRAN
 class UpdatePasswordScreen extends StatefulWidget {
   final VoidCallback onPasswordUpdated;
-  const UpdatePasswordScreen({super.key, required this.onPasswordUpdated});
+  final VoidCallback onCancel;
+  const UpdatePasswordScreen({
+    super.key,
+    required this.onPasswordUpdated,
+    required this.onCancel,
+  });
 
   @override
   State<UpdatePasswordScreen> createState() => _UpdatePasswordScreenState();
@@ -107,24 +147,31 @@ class _UpdatePasswordScreenState extends State<UpdatePasswordScreen> {
   final _passCtrl = TextEditingController();
   final _confirmCtrl = TextEditingController();
   bool _isSaving = false;
+  bool _obscure = true;
+
+  @override
+  void dispose() {
+    _passCtrl.dispose();
+    _confirmCtrl.dispose();
+    super.dispose();
+  }
+
+  void _showMessage(String text, Color color) {
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(text), backgroundColor: color));
+  }
 
   Future<void> _updatePassword() async {
     final pass = _passCtrl.text.trim();
     if (pass.length < 6) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Yeni şifreniz en az 6 karakter olmalıdır.'),
-          backgroundColor: Colors.orange,
-        ),
-      );
+      _showMessage('Yeni şifreniz en az 6 karakter olmalıdır.', Colors.orange);
       return;
     }
     if (pass != _confirmCtrl.text.trim()) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Şifreler birbiriyle eşleşmiyor!'),
-          backgroundColor: Colors.redAccent,
-        ),
+      _showMessage(
+        'Girdiğiniz şifreler birbiriyle uyuşmuyor.',
+        Colors.redAccent,
       );
       return;
     }
@@ -134,108 +181,181 @@ class _UpdatePasswordScreenState extends State<UpdatePasswordScreen> {
       await Supabase.instance.client.auth.updateUser(
         UserAttributes(password: pass),
       );
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Şifreniz başarıyla güncellendi!'),
-            backgroundColor: Colors.green,
-          ),
-        );
-        widget.onPasswordUpdated();
-      }
-    } catch (e) {
+      if (!mounted) return;
+      _showMessage('Şifreniz başarıyla güncellendi.', Colors.green);
+      widget.onPasswordUpdated();
+    } on AuthException catch (e) {
+      if (!mounted) return;
       setState(() => _isSaving = false);
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Şifre güncellenemedi: $e'),
-            backgroundColor: Colors.redAccent,
-          ),
-        );
-      }
+      _showMessage(
+        'Şifre güncellenemedi: ${e.message}. Bağlantının süresi dolmuş olabilir; yeni bir sıfırlama bağlantısı isteyin.',
+        Colors.redAccent,
+      );
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _isSaving = false);
+      _showMessage('Şifre güncellenemedi: $e', Colors.redAccent);
     }
+  }
+
+  InputDecoration _decoration(String label, {Widget? suffix}) {
+    return InputDecoration(
+      labelText: label,
+      labelStyle: const TextStyle(
+        color: Colors.white54,
+        fontSize: 14,
+        letterSpacing: 0.2,
+      ),
+      floatingLabelStyle: const TextStyle(
+        color: _kTeal,
+        fontSize: 14,
+        fontWeight: FontWeight.w600,
+      ),
+      suffixIcon: suffix,
+      filled: true,
+      fillColor: _kBg,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide.none,
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide.none,
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(
+          color: _kTeal.withValues(alpha: 0.8),
+          width: 1.2,
+        ),
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
+    final isMobile = MediaQuery.of(context).size.width < 500;
+
     return Scaffold(
-      backgroundColor: const Color(0xFF101014),
+      backgroundColor: _kBg,
       body: Center(
-        child: Container(
-          width: 400,
-          margin: const EdgeInsets.all(20),
-          padding: const EdgeInsets.all(32),
-          decoration: BoxDecoration(
-            color: const Color(0xFF1A1A20),
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: const Color(0xFF00ACC1).withValues(alpha: 0.3),
-            ),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(Icons.lock_reset, color: Color(0xFF00ACC1), size: 54),
-              const SizedBox(height: 16),
-              const Text(
-                'Yeni Şifrenizi Belirleyin',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                ),
+        child: SingleChildScrollView(
+          padding: EdgeInsets.all(isMobile ? 16 : 32),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 430),
+            child: Container(
+              padding: EdgeInsets.all(isMobile ? 24 : 40),
+              decoration: BoxDecoration(
+                color: _kCard,
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: _kTeal.withValues(alpha: 0.3)),
               ),
-              const SizedBox(height: 20),
-              TextField(
-                controller: _passCtrl,
-                obscureText: true,
-                style: const TextStyle(color: Colors.white),
-                decoration: InputDecoration(
-                  labelText: 'Yeni Şifre',
-                  labelStyle: const TextStyle(color: Colors.white54),
-                  filled: true,
-                  fillColor: const Color(0xFF101014),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide.none,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Image.asset(
+                    'assets/logo.png',
+                    height: 80,
+                    fit: BoxFit.contain,
+                    errorBuilder: (_, __, ___) => const SizedBox(height: 8),
                   ),
-                ),
-              ),
-              const SizedBox(height: 14),
-              TextField(
-                controller: _confirmCtrl,
-                obscureText: true,
-                style: const TextStyle(color: Colors.white),
-                decoration: InputDecoration(
-                  labelText: 'Yeni Şifre (Tekrar)',
-                  labelStyle: const TextStyle(color: Colors.white54),
-                  filled: true,
-                  fillColor: const Color(0xFF101014),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide.none,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 24),
-              SizedBox(
-                width: double.infinity,
-                height: 48,
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF00ACC1),
-                  ),
-                  onPressed: _isSaving ? null : _updatePassword,
-                  child: const Text(
-                    'Şifreyi Kaydet ve Giriş Yap',
+                  const SizedBox(height: 18),
+                  const Text(
+                    'Yeni şifrenizi belirleyin',
                     style: TextStyle(
                       color: Colors.white,
-                      fontWeight: FontWeight.bold,
+                      fontSize: 24,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: -0.4,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 8),
+                  const Text(
+                    'Hesabınız için yeni bir şifre girin. Kaydettikten sonra doğrudan panele yönlendirileceksiniz.',
+                    style: TextStyle(
+                      color: Colors.white54,
+                      fontSize: 13.5,
+                      height: 1.5,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 26),
+                  TextField(
+                    controller: _passCtrl,
+                    obscureText: _obscure,
+                    style: const TextStyle(color: Colors.white, fontSize: 15),
+                    decoration: _decoration(
+                      'Yeni şifre (en az 6 karakter)',
+                      suffix: IconButton(
+                        icon: Icon(
+                          _obscure
+                              ? Icons.visibility_off_outlined
+                              : Icons.visibility_outlined,
+                          color: Colors.white38,
+                          size: 20,
+                        ),
+                        onPressed: () => setState(() => _obscure = !_obscure),
+                      ),
                     ),
                   ),
-                ),
+                  const SizedBox(height: 14),
+                  TextField(
+                    controller: _confirmCtrl,
+                    obscureText: _obscure,
+                    style: const TextStyle(color: Colors.white, fontSize: 15),
+                    decoration: _decoration('Yeni şifre (tekrar)'),
+                    onSubmitted: (_) => _updatePassword(),
+                  ),
+                  const SizedBox(height: 24),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 52,
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: _kTeal,
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      onPressed: _isSaving ? null : _updatePassword,
+                      child: _isSaving
+                          ? const SizedBox(
+                              width: 24,
+                              height: 24,
+                              child: CircularProgressIndicator(
+                                color: Colors.white,
+                                strokeWidth: 2,
+                              ),
+                            )
+                          : const Text(
+                              'Şifreyi Kaydet ve Giriş Yap',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 15.5,
+                                fontWeight: FontWeight.w700,
+                                letterSpacing: 0.3,
+                              ),
+                            ),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  TextButton(
+                    onPressed: _isSaving ? null : widget.onCancel,
+                    child: const Text(
+                      'Vazgeç, giriş ekranına dön',
+                      style: TextStyle(
+                        color: Colors.white54,
+                        fontSize: 13.5,
+                        letterSpacing: 0.1,
+                      ),
+                    ),
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
         ),
       ),

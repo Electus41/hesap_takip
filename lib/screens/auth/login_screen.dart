@@ -289,6 +289,12 @@ class _LoginScreenState extends State<LoginScreen> {
                                 email,
                                 redirectTo: 'https://mukelleftakip.net',
                               );
+                          // Bağlantıya tıklandığında uygulamanın yeni şifre ekranını açabilmesi için işaret bırak
+                          final prefs = await SharedPreferences.getInstance();
+                          await prefs.setInt(
+                            'pending_recovery_at',
+                            DateTime.now().millisecondsSinceEpoch,
+                          );
                           if (mounted) {
                             Navigator.pop(context);
                             ScaffoldMessenger.of(context).showSnackBar(
@@ -1266,6 +1272,7 @@ class _CompanyRegisterScreenState extends State<CompanyRegisterScreen> {
                       ),
                     ),
                   ),
+                  // E-POSTA İLE İLETİŞİM (şimdilik kapalı; açmak için aşağıdaki /* ve */ satırlarını silin)
                   /*
                   const SizedBox(height: 10),
                   SizedBox(
