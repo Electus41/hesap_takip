@@ -267,6 +267,10 @@ class _AnaEkranState extends State<AnaEkran> {
         } catch (_) {}
       }
 
+      transactionsData = transactionsData
+          .where((t) => clientNames.containsKey(t['client_id']?.toString()))
+          .toList();
+
       if (activeClientIds.isNotEmpty && transactionsData.isNotEmpty) {
         await _checkAndGenerateRecurringTransactions(
           activeClientIds,
