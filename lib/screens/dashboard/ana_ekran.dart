@@ -2059,7 +2059,7 @@ class _AnaEkranState extends State<AnaEkran> {
                   ),
                   const Divider(color: Colors.white12, height: 12),
                   const Text(
-                    '© 2026 Mükellef Takip • Tüm hakları saklıdır.MHK Yazılım Çözümleri',
+                    '© 2026 Mükellef Takip • Tüm hakları saklıdır.MHK Yazılım Teknolojileri',
                     style: TextStyle(
                       color: Colors.white54,
                       fontSize: 10,

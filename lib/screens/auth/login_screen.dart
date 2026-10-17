@@ -396,7 +396,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                       ),
                       child: const Text(
-                        'MHK YAZILIM  •  KURUMSAL OFİS YÖNETİMİ',
+                        'MHK YAZILIM TECH • FİNANSAL BULUT EKOSİSTEMİ',
                         style: TextStyle(
                           color: _kTeal,
                           fontSize: 11.5,
@@ -407,7 +407,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                     const SizedBox(height: 28),
                     const Text(
-                      'Mükellef takibi ve ofis\nyönetimi, tek panelde.',
+                      'Mali Müşavirlik ve Finansal Süreçlerde Dijital Dönüşüm.',
                       style: TextStyle(
                         color: Colors.white,
                         fontSize: 44,
@@ -418,7 +418,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                     const SizedBox(height: 20),
                     const Text(
-                      'Mali müşavirlik ve danışmanlık ofisleri için tahakkuk, tahsilat, görev ve evrak yönetimini bir araya getiren platform.',
+                      'Mali müşavirlik ve danışmanlık büroları için tahakkuk, cari hesap, kasa akışı ve kurumsal arşiv süreçlerini uçtan uca yöneten bulut tabanlı ekosistem.',
                       style: TextStyle(
                         color: Colors.white70,
                         fontSize: 16.5,
@@ -428,18 +428,18 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                     const SizedBox(height: 44),
                     _buildFeatureItem(
-                      'Otomatik periyodik tahakkuk',
-                      'Aylık ve yıllık alacaklarınızı tüm mükelleflere tek adımda yansıtın; kısmi ya da tam tahsilatı kolayca takip edin.',
+                      'Otonom Tahakkuk ve Bakiye Denetimi',
+                      'Dönemsel hizmet bedellerini tüm mükellef portföyünüze tek hamlede yansıtın; parçalı veya tam tahsilat akışını sıfır hata ile takip edin.',
                     ),
                     const SizedBox(height: 24),
                     _buildFeatureItem(
-                      'Cari ekstre ve ödeme hatırlatma',
-                      'Tarih aralığına göre PDF ekstre hazırlayın, geciken ödemeleri WhatsApp ile hatırlatın.',
+                      'Dinamik Cari Ekstre ve Hızlı Mutabakat',
+                      'Tarih aralığına göre resmi formatta PDF ve metin ekstreleri saniyeler içinde üretin; geciken alacakları entegre iletişim kanallarıyla anında hatırlatın.',
                     ),
                     const SizedBox(height: 24),
                     _buildFeatureItem(
-                      'Güvenli ve izole veri yapısı',
-                      'Bulut altyapısında ya da kendi sunucunuzda (On-Premise), ofisinize özel ayrı bir veri yapısıyla çalışın.',
+                      'İzole Bulut Mimarisi ve Çoklu Platform Gücü',
+                      'Ofisinize özel şifrelenmiş veri izolasyonu (Multi-Tenant) ile Web ve Mobil cihazlarınızdan tüm ofis verilerinize kesintisiz ve güvenle erişin.',
                     ),
                     const Spacer(),
                     const Divider(color: Colors.white12),
@@ -448,7 +448,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(
-                          '© 2026 MHK Yazılım. Tüm hakları saklıdır.',
+                          '© 2026 MHK Yazılım Teknolojileri. Tüm hakları saklıdır.',
                           style: TextStyle(
                             color: Colors.white38,
                             fontSize: 12.5,
@@ -528,7 +528,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                         const SizedBox(height: 8),
                         const Text(
-                          'Mükellef Takip hesabınızla oturum açın',
+                          'MHK Yazılım Tech kurumsal hesabınızla oturum açın',
                           style: TextStyle(
                             color: Colors.white54,
                             fontSize: 14,
@@ -724,7 +724,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             if (!isDesktop) ...[
                               const SizedBox(height: 14),
                               const Text(
-                                '© 2026 MHK Yazılım',
+                                '© 2026 MHK Yazılım Teknolojileri. Tüm hakları saklıdır.',
                                 style: TextStyle(
                                   color: Colors.white38,
                                   fontSize: 11.5,
@@ -1149,7 +1149,7 @@ class _CompanyRegisterScreenState extends State<CompanyRegisterScreen> {
                   ),
                   const SizedBox(height: 8),
                   const Text(
-                    'MHK Yazılım\'ın size verdiği lisans anahtarıyla ofisinizi etkinleştirin.',
+                    'MHK Yazılım Tech\'ın size verdiği lisans anahtarıyla ofisinizi etkinleştirin.',
                     style: TextStyle(
                       color: Colors.white54,
                       fontSize: 13.5,

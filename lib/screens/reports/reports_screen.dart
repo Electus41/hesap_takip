@@ -764,7 +764,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   const Text(
-                    'MHK Yazılım & Teknoloji Çözümleri • Resmi Ekstre Belgesi',
+                    'MHK Yazılım Teknolojileri • Kurumsal Finans ve Raporlama Altyapısı',
                     style: TextStyle(color: Colors.black45, fontSize: 11),
                   ),
                   Row(
