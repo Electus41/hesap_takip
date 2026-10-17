@@ -82,10 +82,11 @@ class _ClientListScreenState extends State<ClientListScreen> {
       text: existingClient?['title']?.toString() ?? '',
     );
     final contactCtrl = TextEditingController(
-      text: (existingClient?['contact_person'] ??
-              existingClient?['contact_name'] ??
-              '')
-          .toString(),
+      text:
+          (existingClient?['contact_person'] ??
+                  existingClient?['contact_name'] ??
+                  '')
+              .toString(),
     );
     final taxOfficeCtrl = TextEditingController(
       text: existingClient?['tax_office']?.toString() ?? '',
@@ -138,7 +139,7 @@ class _ClientListScreenState extends State<ClientListScreen> {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    if (errorMessage != ...[
+                    if (errorMessage != null) ...[
                       Container(
                         width: double.infinity,
                         padding: const EdgeInsets.all(10),
@@ -353,30 +354,69 @@ class _ClientListScreenState extends State<ClientListScreen> {
   }
 
   Future<void> _confirmDeleteClient(Map<String, dynamic> client) async {
+    // Bu mükellefe bağlı finansal kayıt sayısını bul
+    int txCount = 0;
+    try {
+      final txRes = await supabase
+          .from('transactions')
+          .select('id')
+          .eq('client_id', client['id']);
+      txCount = (txRes as List).length;
+    } catch (_) {}
+
+    if (!mounted) return;
+
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         backgroundColor: const Color(0xFF1A1A20),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: const Text(
           'Mükellefi Sil',
           style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
-        content: Text(
-          '"${client['title']}" isimli mükellefi silmek istediğinize emin misiniz?',
-          style: const TextStyle(color: Colors.white70),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              '"${client['title']}" isimli mükellef silinecek.',
+              style: const TextStyle(color: Colors.white70, height: 1.5),
+            ),
+            if (txCount > 0) ...[
+              const SizedBox(height: 12),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.redAccent.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: Colors.redAccent),
+                ),
+                child: Text(
+                  'Bu mükellefe ait $txCount finansal kayıt (borç / tahsilat) da kalıcı olarak silinecek. Bu işlem geri alınamaz.',
+                  style: const TextStyle(
+                    color: Colors.redAccent,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    height: 1.4,
+                  ),
+                ),
+              ),
+            ],
+          ],
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context, false),
+            onPressed: () => Navigator.pop(dialogContext, false),
             child: const Text('İptal', style: TextStyle(color: Colors.white54)),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent),
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text(
-              'Evet, Sil',
-              style: TextStyle(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: Text(
+              txCount > 0 ? 'Evet, Hepsini Sil' : 'Evet, Sil',
+              style: const TextStyle(
                 color: Colors.white,
                 fontWeight: FontWeight.bold,
               ),
@@ -386,9 +426,31 @@ class _ClientListScreenState extends State<ClientListScreen> {
       ),
     );
 
-    if (confirmed == true) {
+    if (confirmed != true) return;
+
+    try {
+      await supabase
+          .from('transactions')
+          .delete()
+          .eq('client_id', client['id']);
       await supabase.from('clients').delete().eq('id', client['id']);
+
+      if (!mounted) return;
       _fetchClients();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Mükellef ve bağlı kayıtları silindi.'),
+          backgroundColor: Colors.green,
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Mükellef silinemedi: $e'),
+          backgroundColor: Colors.redAccent,
+        ),
+      );
     }
   }
 
@@ -621,8 +683,7 @@ class _ClientListScreenState extends State<ClientListScreen> {
                                             vertical: 8,
                                           ),
                                       border: OutlineInputBorder(
-                                        borderRadius:
-                                            BorderRadius.circular(10),
+                                        borderRadius: BorderRadius.circular(10),
                                         borderSide: BorderSide.none,
                                       ),
                                     ),
@@ -635,18 +696,14 @@ class _ClientListScreenState extends State<ClientListScreen> {
                                               (d) => DropdownMenuItem(
                                                 value: d,
                                                 child: Text(
-                                                  d
-                                                      .toString()
-                                                      .padLeft(2, '0'),
+                                                  d.toString().padLeft(2, '0'),
                                                 ),
                                               ),
                                             )
                                             .toList(),
                                     onChanged: (val) {
                                       if (val != null) {
-                                        setDialogState(
-                                          () => selectedDay = val,
-                                        );
+                                        setDialogState(() => selectedDay = val);
                                       }
                                     },
                                   ),
@@ -674,8 +731,7 @@ class _ClientListScreenState extends State<ClientListScreen> {
                                             vertical: 8,
                                           ),
                                       border: OutlineInputBorder(
-                                        borderRadius:
-                                            BorderRadius.circular(10),
+                                        borderRadius: BorderRadius.circular(10),
                                         borderSide: BorderSide.none,
                                       ),
                                     ),
@@ -801,10 +857,8 @@ class _ClientListScreenState extends State<ClientListScreen> {
 
                         DateTime finalDueDate;
                         if (selectedFrequency == 'monthly') {
-                          final maxD =
-                              DateTime(now.year, now.month + 1, 0).day;
-                          final d =
-                              selectedDay > maxD ? maxD : selectedDay;
+                          final maxD = DateTime(now.year, now.month + 1, 0).day;
+                          final d = selectedDay > maxD ? maxD : selectedDay;
                           finalDueDate = DateTime(now.year, now.month, d);
                         } else if (selectedFrequency == 'yearly') {
                           final maxD = DateTime(
@@ -812,18 +866,15 @@ class _ClientListScreenState extends State<ClientListScreen> {
                             selectedMonth + 1,
                             0,
                           ).day;
-                          final d =
-                              selectedDay > maxD ? maxD : selectedDay;
-                          finalDueDate =
-                              DateTime(now.year, selectedMonth, d);
+                          final d = selectedDay > maxD ? maxD : selectedDay;
+                          finalDueDate = DateTime(now.year, selectedMonth, d);
                         } else {
                           final maxD = DateTime(
                             selectedYear,
                             selectedMonth + 1,
                             0,
                           ).day;
-                          final d =
-                              selectedDay > maxD ? maxD : selectedDay;
+                          final d = selectedDay > maxD ? maxD : selectedDay;
                           finalDueDate = DateTime(
                             selectedYear,
                             selectedMonth,
@@ -1055,11 +1106,10 @@ class _ClientListScreenState extends State<ClientListScreen> {
                                   ),
                                 ),
                                 child: ListTile(
-                                  contentPadding:
-                                      const EdgeInsets.symmetric(
-                                        horizontal: 16,
-                                        vertical: 8,
-                                      ),
+                                  contentPadding: const EdgeInsets.symmetric(
+                                    horizontal: 16,
+                                    vertical: 8,
+                                  ),
                                   leading: CircleAvatar(
                                     backgroundColor: const Color(
                                       0xFF00ACC1,
@@ -1081,9 +1131,7 @@ class _ClientListScreenState extends State<ClientListScreen> {
                                     ),
                                   ),
                                   subtitle: Padding(
-                                    padding: const EdgeInsets.only(
-                                      top: 4.0,
-                                    ),
+                                    padding: const EdgeInsets.only(top: 4.0),
                                     child: Text(
                                       '${contactName.isNotEmpty ? 'Yetkili: $contactName\n' : ''}Vergi Dairesi: ${c['tax_office'] ?? '-'}\nVKN/TC: ${c['tax_number'] ?? '-'}\nTel: ${c['phone'] ?? '-'}',
                                       style: const TextStyle(
