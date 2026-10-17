@@ -188,7 +188,6 @@ class _AddClientScreenState extends State<AddClientScreen> {
     );
   }
 
-  // Modern Tasarımlı Input Alanı (Kayıklık ve Kesilme Sorununa Karşı Düzenlendi)
   Widget _buildModernTextField({
     required TextEditingController controller,
     required String label,
@@ -202,15 +201,9 @@ class _AddClientScreenState extends State<AddClientScreen> {
       validator: validator,
       style: const TextStyle(color: Colors.white),
       decoration: InputDecoration(
-        labelText: label,
-        floatingLabelBehavior: FloatingLabelBehavior.auto,
-        labelStyle: const TextStyle(color: Colors.white54, fontSize: 13),
-        floatingLabelStyle: const TextStyle(
-          color: Color(0xFF00ACC1),
-          fontWeight: FontWeight.bold,
-          fontSize: 13,
-        ),
-        prefixIcon: Icon(icon, color: Colors.white38, size: 20),
+        hintText: label, // Etiketi hintText yaparak kutunun içine sabitliyoruz
+        hintStyle: const TextStyle(color: Colors.white54, fontSize: 13),
+        prefixIcon: Icon(icon, color: Colors.white30, size: 20),
         filled: true,
         fillColor: const Color(0xFF1A1A20),
         contentPadding: const EdgeInsets.symmetric(
@@ -219,15 +212,15 @@ class _AddClientScreenState extends State<AddClientScreen> {
         ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: Colors.white.withOpacity(0.08)),
+          borderSide: BorderSide(color: Colors.white.withOpacity(0.05)),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: Colors.white.withOpacity(0.08)),
+          borderSide: BorderSide(color: Colors.white.withOpacity(0.05)),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: Color(0xFF00ACC1), width: 1.5),
+          borderSide: const BorderSide(color: Color(0xFF00ACC1)),
         ),
       ),
     );
