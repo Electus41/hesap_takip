@@ -25,6 +25,21 @@ class _CashTransactionsScreenState extends State<CashTransactionsScreen>
   double _totalIncome = 0.0;
   double _totalExpense = 0.0;
 
+  static const List<String> _turkishMonths = [
+    'Ocak',
+    'Şubat',
+    'Mart',
+    'Nisan',
+    'Mayıs',
+    'Haziran',
+    'Temmuz',
+    'Ağustos',
+    'Eylül',
+    'Ekim',
+    'Kasım',
+    'Aralık',
+  ];
+
   @override
   void initState() {
     super.initState();
@@ -43,6 +58,123 @@ class _CashTransactionsScreenState extends State<CashTransactionsScreen>
   void dispose() {
     _tabController.dispose();
     super.dispose();
+  }
+
+  // RAPOR EKRANIYLA BİREBİR AYNI %100 TÜRKÇE GÜN / AY / YIL SEÇİCİ
+  Widget _buildTurkishDateDropdowns(
+    DateTime current,
+    ValueChanged<DateTime> onChanged,
+  ) {
+    final maxDaysInMonth = DateTime(current.year, current.month + 1, 0).day;
+    final safeDay = current.day > maxDaysInMonth ? maxDaysInMonth : current.day;
+
+    return Row(
+      children: [
+        // GÜN SEÇİMİ
+        Expanded(
+          flex: 2,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10),
+            decoration: BoxDecoration(
+              color: const Color(0xFF101014),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: Colors.white12),
+            ),
+            child: DropdownButtonHideUnderline(
+              child: DropdownButton<int>(
+                value: safeDay,
+                isExpanded: true,
+                dropdownColor: const Color(0xFF222222),
+                style: const TextStyle(color: Colors.white, fontSize: 14),
+                items: List.generate(maxDaysInMonth, (i) => i + 1)
+                    .map(
+                      (d) => DropdownMenuItem(
+                        value: d,
+                        child: Text(d.toString().padLeft(2, '0')),
+                      ),
+                    )
+                    .toList(),
+                onChanged: (val) {
+                  if (val != null) {
+                    onChanged(DateTime(current.year, current.month, val));
+                  }
+                },
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(width: 8),
+        // TÜRKÇE AY SEÇİMİ
+        Expanded(
+          flex: 4,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10),
+            decoration: BoxDecoration(
+              color: const Color(0xFF101014),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: Colors.white12),
+            ),
+            child: DropdownButtonHideUnderline(
+              child: DropdownButton<int>(
+                value: current.month,
+                isExpanded: true,
+                dropdownColor: const Color(0xFF222222),
+                style: const TextStyle(color: Colors.white, fontSize: 14),
+                items: List.generate(12, (i) => i + 1)
+                    .map(
+                      (m) => DropdownMenuItem(
+                        value: m,
+                        child: Text(_turkishMonths[m - 1]),
+                      ),
+                    )
+                    .toList(),
+                onChanged: (val) {
+                  if (val != null) {
+                    final maxD = DateTime(current.year, val + 1, 0).day;
+                    final d = current.day > maxD ? maxD : current.day;
+                    onChanged(DateTime(current.year, val, d));
+                  }
+                },
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(width: 8),
+        // YIL SEÇİMİ (2015 - 2035)
+        Expanded(
+          flex: 3,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10),
+            decoration: BoxDecoration(
+              color: const Color(0xFF101014),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: Colors.white12),
+            ),
+            child: DropdownButtonHideUnderline(
+              child: DropdownButton<int>(
+                value: current.year,
+                isExpanded: true,
+                dropdownColor: const Color(0xFF222222),
+                style: const TextStyle(color: Colors.white, fontSize: 14),
+                items: List.generate(21, (i) => 2015 + i)
+                    .map(
+                      (y) =>
+                          DropdownMenuItem(value: y, child: Text(y.toString())),
+                    )
+                    .toList(),
+                onChanged: (val) {
+                  if (val != null) {
+                    final maxD = DateTime(val, current.month + 1, 0).day;
+                    final d = safeDay > maxD ? maxD : safeDay;
+                    onChanged(DateTime(val, current.month, d));
+                  }
+                },
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
   }
 
   Future<void> _fetchCashData() async {
@@ -162,6 +294,9 @@ class _CashTransactionsScreenState extends State<CashTransactionsScreen>
             ),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(16),
+              side: BorderSide(
+                color: Colors.greenAccent.withValues(alpha: 0.25),
+              ),
             ),
             title: const Row(
               children: [
@@ -271,51 +406,29 @@ class _CashTransactionsScreenState extends State<CashTransactionsScreen>
                         ),
                       ),
                     ),
-                    const SizedBox(height: 14),
-                    // GEÇMİŞ VEYA BUGÜNKÜ TARİH SEÇİCİ
-                    InkWell(
-                      onTap: () async {
-                        final picked = await showDatePicker(
-                          context: context,
-                          initialDate: selectedDate,
-                          firstDate: DateTime(2015),
-                          lastDate: DateTime(2035),
-                        );
-                        if (picked != null) {
-                          setDialogState(() => selectedDate = picked);
-                        }
-                      },
-                      borderRadius: BorderRadius.circular(12),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 14,
-                          vertical: 16,
+                    const SizedBox(height: 16),
+                    const Row(
+                      children: [
+                        Icon(
+                          Icons.calendar_month,
+                          color: Color(0xFF00ACC1),
+                          size: 16,
                         ),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF101014),
-                          borderRadius: BorderRadius.circular(12),
+                        SizedBox(width: 6),
+                        Text(
+                          'Tahsilat / İşlem Tarihi (Gün / Ay / Yıl):',
+                          style: TextStyle(
+                            color: Colors.white70,
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
-                        child: Row(
-                          children: [
-                            const Icon(
-                              Icons.calendar_month,
-                              color: Color(0xFF00ACC1),
-                              size: 20,
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Text(
-                                'İşlem Tarihi: ${DateFormat('dd.MM.yyyy').format(selectedDate)} (Değiştirmek için dokunun)',
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 13,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
+                      ],
                     ),
+                    const SizedBox(height: 8),
+                    _buildTurkishDateDropdowns(selectedDate, (newDate) {
+                      setDialogState(() => selectedDate = newDate);
+                    }),
                   ],
                 ),
               ),
@@ -447,6 +560,7 @@ class _CashTransactionsScreenState extends State<CashTransactionsScreen>
             ),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(16),
+              side: BorderSide(color: Colors.redAccent.withValues(alpha: 0.25)),
             ),
             title: const Row(
               children: [
@@ -469,6 +583,7 @@ class _CashTransactionsScreenState extends State<CashTransactionsScreen>
                 width: isMobile ? screenWidth : 440,
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     DropdownButtonFormField<String>(
                       value: selectedCategory,
@@ -566,50 +681,29 @@ class _CashTransactionsScreenState extends State<CashTransactionsScreen>
                         ),
                       ),
                     ),
-                    const SizedBox(height: 14),
-                    InkWell(
-                      onTap: () async {
-                        final picked = await showDatePicker(
-                          context: context,
-                          initialDate: selectedDate,
-                          firstDate: DateTime(2015),
-                          lastDate: DateTime(2035),
-                        );
-                        if (picked != null) {
-                          setDialogState(() => selectedDate = picked);
-                        }
-                      },
-                      borderRadius: BorderRadius.circular(12),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 14,
-                          vertical: 16,
+                    const SizedBox(height: 16),
+                    const Row(
+                      children: [
+                        Icon(
+                          Icons.calendar_month,
+                          color: Colors.redAccent,
+                          size: 16,
                         ),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF101014),
-                          borderRadius: BorderRadius.circular(12),
+                        SizedBox(width: 6),
+                        Text(
+                          'Masraf Tarihi (Gün / Ay / Yıl):',
+                          style: TextStyle(
+                            color: Colors.white70,
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
-                        child: Row(
-                          children: [
-                            const Icon(
-                              Icons.calendar_month,
-                              color: Colors.redAccent,
-                              size: 20,
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Text(
-                                'Masraf Tarihi: ${DateFormat('dd.MM.yyyy').format(selectedDate)} (Değiştirmek için dokunun)',
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 13,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
+                      ],
                     ),
+                    const SizedBox(height: 8),
+                    _buildTurkishDateDropdowns(selectedDate, (newDate) {
+                      setDialogState(() => selectedDate = newDate);
+                    }),
                   ],
                 ),
               ),
@@ -779,7 +873,6 @@ class _CashTransactionsScreenState extends State<CashTransactionsScreen>
           ],
         ),
       ),
-      // SEKMEYE GÖRE DEĞİŞEN AKILLI BUTON (GELİR SEKMESİNDE GELİR EKLE, GİDERDE MASRAF EKLE)
       floatingActionButton: _activeTabIndex == 0
           ? FloatingActionButton.extended(
               onPressed: _showAddIncomeDialog,
