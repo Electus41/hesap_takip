@@ -82,11 +82,10 @@ class _ClientListScreenState extends State<ClientListScreen> {
       text: existingClient?['title']?.toString() ?? '',
     );
     final contactCtrl = TextEditingController(
-      text:
-          (existingClient?['contact_person'] ??
-                  existingClient?['contact_name'] ??
-                  '')
-              .toString(),
+      text: (existingClient?['contact_person'] ??
+              existingClient?['contact_name'] ??
+              '')
+          .toString(),
     );
     final taxOfficeCtrl = TextEditingController(
       text: existingClient?['tax_office']?.toString() ?? '',
@@ -107,6 +106,7 @@ class _ClientListScreenState extends State<ClientListScreen> {
       text: existingClient?['notes']?.toString() ?? '',
     );
     bool isSaving = false;
+    String? errorMessage; // Diyalog içi net uyarı mesajı
 
     showDialog(
       context: context,
@@ -138,6 +138,38 @@ class _ClientListScreenState extends State<ClientListScreen> {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
+                    if (errorMessage != ...[
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(10),
+                        margin: const EdgeInsets.only(bottom: 12),
+                        decoration: BoxDecoration(
+                          color: Colors.orangeAccent.withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: Colors.orangeAccent),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(
+                              Icons.warning_amber_rounded,
+                              color: Colors.orangeAccent,
+                              size: 18,
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                errorMessage!,
+                                style: const TextStyle(
+                                  color: Colors.orangeAccent,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                     _buildDialogField(
                       'Firma / Mükellef Unvanı *',
                       titleCtrl,
@@ -213,18 +245,17 @@ class _ClientListScreenState extends State<ClientListScreen> {
                     ElevatedButton(
                       onPressed: () async {
                         if (titleCtrl.text.trim().isEmpty) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text(
-                                'Lütfen Firma / Mükellef Unvanını girin.',
-                              ),
-                              backgroundColor: Colors.orange,
-                            ),
-                          );
+                          setDialogState(() {
+                            errorMessage =
+                                'Lütfen Firma / Mükellef Unvanını girin.';
+                          });
                           return;
                         }
 
-                        setDialogState(() => isSaving = true);
+                        setDialogState(() {
+                          errorMessage = null;
+                          isSaving = true;
+                        });
 
                         final Map<String, dynamic> data = {
                           'company_id': _companyId,
@@ -405,7 +436,7 @@ class _ClientListScreenState extends State<ClientListScreen> {
               borderRadius: BorderRadius.circular(16),
             ),
             title: Text(
-              '${client['title']} • Tahakkuk Tanımla',
+              '${client['title']} - Tahakkuk Tanımla',
               style: const TextStyle(
                 color: Colors.white,
                 fontWeight: FontWeight.bold,
@@ -443,12 +474,14 @@ class _ClientListScreenState extends State<ClientListScreen> {
                             )
                             .toList(),
                         onChanged: (val) {
-                          setDialogState(() {
-                            selectedPtId = val;
-                            selectedPtName = _paymentTypes.firstWhere(
-                              (pt) => pt['id'].toString() == val,
-                            )['name'];
-                          });
+                          if (val != null) {
+                            setDialogState(() {
+                              selectedPtId = val;
+                              selectedPtName = _paymentTypes.firstWhere(
+                                (pt) => pt['id'].toString() == val,
+                              )['name'];
+                            });
+                          }
                         },
                       ),
                       const SizedBox(height: 12),
@@ -588,7 +621,8 @@ class _ClientListScreenState extends State<ClientListScreen> {
                                             vertical: 8,
                                           ),
                                       border: OutlineInputBorder(
-                                        borderRadius: BorderRadius.circular(10),
+                                        borderRadius:
+                                            BorderRadius.circular(10),
                                         borderSide: BorderSide.none,
                                       ),
                                     ),
@@ -601,14 +635,18 @@ class _ClientListScreenState extends State<ClientListScreen> {
                                               (d) => DropdownMenuItem(
                                                 value: d,
                                                 child: Text(
-                                                  d.toString().padLeft(2, '0'),
+                                                  d
+                                                      .toString()
+                                                      .padLeft(2, '0'),
                                                 ),
                                               ),
                                             )
                                             .toList(),
                                     onChanged: (val) {
                                       if (val != null) {
-                                        setDialogState(() => selectedDay = val);
+                                        setDialogState(
+                                          () => selectedDay = val,
+                                        );
                                       }
                                     },
                                   ),
@@ -636,7 +674,8 @@ class _ClientListScreenState extends State<ClientListScreen> {
                                             vertical: 8,
                                           ),
                                       border: OutlineInputBorder(
-                                        borderRadius: BorderRadius.circular(10),
+                                        borderRadius:
+                                            BorderRadius.circular(10),
                                         borderSide: BorderSide.none,
                                       ),
                                     ),
@@ -762,8 +801,10 @@ class _ClientListScreenState extends State<ClientListScreen> {
 
                         DateTime finalDueDate;
                         if (selectedFrequency == 'monthly') {
-                          final maxD = DateTime(now.year, now.month + 1, 0).day;
-                          final d = selectedDay > maxD ? maxD : selectedDay;
+                          final maxD =
+                              DateTime(now.year, now.month + 1, 0).day;
+                          final d =
+                              selectedDay > maxD ? maxD : selectedDay;
                           finalDueDate = DateTime(now.year, now.month, d);
                         } else if (selectedFrequency == 'yearly') {
                           final maxD = DateTime(
@@ -771,15 +812,18 @@ class _ClientListScreenState extends State<ClientListScreen> {
                             selectedMonth + 1,
                             0,
                           ).day;
-                          final d = selectedDay > maxD ? maxD : selectedDay;
-                          finalDueDate = DateTime(now.year, selectedMonth, d);
+                          final d =
+                              selectedDay > maxD ? maxD : selectedDay;
+                          finalDueDate =
+                              DateTime(now.year, selectedMonth, d);
                         } else {
                           final maxD = DateTime(
                             selectedYear,
                             selectedMonth + 1,
                             0,
                           ).day;
-                          final d = selectedDay > maxD ? maxD : selectedDay;
+                          final d =
+                              selectedDay > maxD ? maxD : selectedDay;
                           finalDueDate = DateTime(
                             selectedYear,
                             selectedMonth,
@@ -802,7 +846,7 @@ class _ClientListScreenState extends State<ClientListScreen> {
 
                         final finalDesc = periodLabel.isEmpty
                             ? baseDesc
-                            : '$baseDesc • $periodLabel';
+                            : '$baseDesc\n$periodLabel';
 
                         final periodKey = selectedFrequency == 'monthly'
                             ? DateFormat('yyyy-MM').format(finalDueDate)
@@ -858,6 +902,7 @@ class _ClientListScreenState extends State<ClientListScreen> {
     );
   }
 
+  // Kesilmeyen ve Kaymayan Sabit Başlıklı Modern Input Yapısı
   Widget _buildDialogField(
     String label,
     TextEditingController controller,
@@ -865,26 +910,57 @@ class _ClientListScreenState extends State<ClientListScreen> {
     int maxLines = 1,
     TextInputType? keyboardType,
   }) {
-    return TextField(
-      controller: controller,
-      maxLines: maxLines,
-      keyboardType: keyboardType,
-      style: const TextStyle(color: Colors.white, fontSize: 14),
-      decoration: InputDecoration(
-        labelText: label,
-        labelStyle: const TextStyle(color: Colors.white54, fontSize: 13),
-        prefixIcon: Icon(icon, color: Colors.white38, size: 20),
-        filled: true,
-        fillColor: const Color(0xFF101014),
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: 16,
-          vertical: 14,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(left: 4, bottom: 6),
+          child: Text(
+            label,
+            style: const TextStyle(
+              color: Colors.white70,
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
         ),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide.none,
+        TextField(
+          controller: controller,
+          maxLines: maxLines,
+          keyboardType: keyboardType,
+          style: const TextStyle(color: Colors.white, fontSize: 14),
+          decoration: InputDecoration(
+            hintText: label,
+            hintStyle: const TextStyle(color: Colors.white38, fontSize: 13),
+            prefixIcon: Icon(icon, color: const Color(0xFF00ACC1), size: 20),
+            filled: true,
+            fillColor: const Color(0xFF101014),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 14,
+            ),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(
+                color: Colors.white.withValues(alpha: 0.08),
+              ),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(
+                color: Colors.white.withValues(alpha: 0.08),
+              ),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(
+                color: Color(0xFF00ACC1),
+                width: 1.5,
+              ),
+            ),
+          ),
         ),
-      ),
+      ],
     );
   }
 
@@ -979,10 +1055,11 @@ class _ClientListScreenState extends State<ClientListScreen> {
                                   ),
                                 ),
                                 child: ListTile(
-                                  contentPadding: const EdgeInsets.symmetric(
-                                    horizontal: 16,
-                                    vertical: 8,
-                                  ),
+                                  contentPadding:
+                                      const EdgeInsets.symmetric(
+                                        horizontal: 16,
+                                        vertical: 8,
+                                      ),
                                   leading: CircleAvatar(
                                     backgroundColor: const Color(
                                       0xFF00ACC1,
@@ -1004,9 +1081,11 @@ class _ClientListScreenState extends State<ClientListScreen> {
                                     ),
                                   ),
                                   subtitle: Padding(
-                                    padding: const EdgeInsets.only(top: 4.0),
+                                    padding: const EdgeInsets.only(
+                                      top: 4.0,
+                                    ),
                                     child: Text(
-                                      '${contactName.isNotEmpty ? 'Yetkili: $contactName • ' : ''}Vergi Dairesi: ${c['tax_office'] ?? '-'} • VKN/TC: ${c['tax_number'] ?? '-'}\nTel: ${c['phone'] ?? '-'}',
+                                      '${contactName.isNotEmpty ? 'Yetkili: $contactName\n' : ''}Vergi Dairesi: ${c['tax_office'] ?? '-'}\nVKN/TC: ${c['tax_number'] ?? '-'}\nTel: ${c['phone'] ?? '-'}',
                                       style: const TextStyle(
                                         color: Colors.white54,
                                         fontSize: 12,
