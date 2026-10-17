@@ -26,15 +26,21 @@ class _AddClientScreenState extends State<AddClientScreen> {
     setState(() => _isLoading = true);
 
     try {
-      /* 
-       ÖNEMLİ NOT: SQL tablomuzda company_id NOT NULL.
-       Gerçek sistemde giriş yapan kullanıcının company_id'si buraya gelecek.
-       Şimdilik test etmek için veritabanındaki companies tablosuna el ile bir 
-       şirket ekleyip onun ID'sini buraya yapıştırabilirsin veya company_id gereksinimini geçici kaldırabilirsin.
-      */
+      final user = supabase.auth.currentUser;
+      if (user == null) throw 'Oturum açmış kullanıcı bulunamadı.';
+
+      // Kullanıcının bağlı olduğu company_id'yi profilden alalım
+      final profile = await supabase
+          .from('profiles')
+          .select('company_id')
+          .eq('id', user.id)
+          .single();
+
+      final companyId = profile['company_id'];
+      if (companyId == null) throw 'Kullanıcıya ait bir şirket ID bulunamadı.';
 
       await supabase.from('clients').insert({
-        // 'company_id': 'VERITABANINDAKI_BIR_COMPANY_ID_BURAYA',
+        'company_id': companyId,
         'title': _titleController.text.trim(),
         'tax_no': _taxNoController.text.trim(),
         'tax_office': _taxOfficeController.text.trim(),
@@ -95,7 +101,8 @@ class _AddClientScreenState extends State<AddClientScreen> {
               child: CircularProgressIndicator(color: Color(0xFF00ACC1)),
             )
           : SingleChildScrollView(
-              padding: const EdgeInsets.all(24.0),
+              // Üst kısımdaki etiketin kesilmesini önlemek için üstten boşluk bırakıldı
+              padding: const EdgeInsets.fromLTRB(24.0, 32.0, 24.0, 24.0),
               child: Form(
                 key: _formKey,
                 child: Column(
@@ -123,7 +130,7 @@ class _AddClientScreenState extends State<AddClientScreen> {
                         ),
                         const SizedBox(width: 16),
                         Expanded(
-                          child: _buildModernTextField(
+                          child: _buildMODernTextFieldForOffice(
                             controller: _taxOfficeController,
                             label: 'Vergi Dairesi',
                             icon: Icons.account_balance,
@@ -181,7 +188,7 @@ class _AddClientScreenState extends State<AddClientScreen> {
     );
   }
 
-  // Modern Tasarımlı Input Alanı
+  // Modern Tasarımlı Input Alanı (Kayıklık ve Kesilme Sorununa Karşı Düzenlendi)
   Widget _buildModernTextField({
     required TextEditingController controller,
     required String label,
@@ -196,23 +203,45 @@ class _AddClientScreenState extends State<AddClientScreen> {
       style: const TextStyle(color: Colors.white),
       decoration: InputDecoration(
         labelText: label,
-        labelStyle: const TextStyle(color: Colors.white54),
-        prefixIcon: Icon(icon, color: Colors.white30),
+        floatingLabelBehavior: FloatingLabelBehavior.auto,
+        labelStyle: const TextStyle(color: Colors.white54, fontSize: 13),
+        floatingLabelStyle: const TextStyle(
+          color: Color(0xFF00ACC1),
+          fontWeight: FontWeight.bold,
+          fontSize: 13,
+        ),
+        prefixIcon: Icon(icon, color: Colors.white38, size: 20),
         filled: true,
         fillColor: const Color(0xFF1A1A20),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 16,
+        ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: Colors.white.withOpacity(0.05)),
+          borderSide: BorderSide(color: Colors.white.withOpacity(0.08)),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: Colors.white.withOpacity(0.05)),
+          borderSide: BorderSide(color: Colors.white.withOpacity(0.08)),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: Color(0xFF00ACC1)),
+          borderSide: const BorderSide(color: Color(0xFF00ACC1), width: 1.5),
         ),
       ),
+    );
+  }
+
+  Widget _buildMODernTextFieldForOffice({
+    required TextEditingController controller,
+    required String label,
+    required IconData icon,
+  }) {
+    return _buildModernTextField(
+      controller: controller,
+      label: label,
+      icon: icon,
     );
   }
 }
